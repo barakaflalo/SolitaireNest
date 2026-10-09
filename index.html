@@ -180,7 +180,12 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
 .soon{margin:12px 2px 0;font-size:13px;color:var(--muted);text-align:center}
 .hero .heroArt2{position:absolute;inset-inline-end:8px;bottom:-26px;width:150px;height:110px;pointer-events:none}
 .hero .heroArt2 .pc{position:absolute;bottom:0;left:50%;transform-origin:50% 130%;--w:52px}
-.hero p{max-width:calc(100% - 140px)}
+.hero p{max-width:none}
+.hero .heroArt{display:block;width:min(86%,320px);margin:6px auto -12px;position:relative;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));pointer-events:none}
+.hlogo{height:46px;width:auto;flex:1 1 auto;min-width:0;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.daily img.ic{width:48px;height:48px;object-fit:contain;flex:none}
+.game .gimg{width:54px;height:54px;object-fit:contain;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.gh{display:flex;align-items:center;gap:8px}.gh img{width:34px;height:34px;object-fit:contain}
 /* ---------------- overlays ---------------- */
 #ovs .ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -234,14 +239,15 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
   <div class="home">
     <div class="htop">
       <div class="tools"><button class="ibtn" id="hTheme" aria-label="theme">🎨</button><button class="ibtn" id="hMode" aria-label="day/night">🌙</button></div>
+      <img class="hlogo" src="img/logo.webp" alt="SolitaireNest">
       <div class="tools"><button class="ibtn" id="hLang" aria-label="language">🌐</button><button class="ibtn" id="hAbout" aria-label="about">ℹ️</button></div>
     </div>
     <div class="hero">
-      <div class="heroArt2" id="heroFan"></div>
       <h1>SolitaireNest<small data-t="appName"></small></h1>
       <p data-t="tagline"></p>
+      <img class="heroArt" src="img/hero.webp" alt="" decoding="async">
     </div>
-    <button class="daily" id="mDaily"><span class="ic">📅</span><span><b data-t="daily"></b><span id="dSub"></span></span><span class="stk" id="dStreak"></span></button>
+    <button class="daily" id="mDaily"><img class="ic" src="img/daily.webp" alt=""><span><b data-t="daily"></b><span id="dSub"></span></span><span class="stk" id="dStreak"></span></button>
     <button class="mode main hide" id="mCont" style="width:100%;margin-bottom:12px"><span class="ic">▶</span><span><b data-t="continue"></b><span id="mContSub"></span></span></button>
     <div class="games" id="games"></div>
     <p class="soon" data-t="soon"></p>
@@ -735,7 +741,7 @@ const KWIN = { 1: [4,8,12,16,18,19,20,21,22,23,29,31,33,36,37,39,42,47,50,53,54,
 /* =====================================================================
    SolitaireNest — app core (storage · settings · screens · cards · sound · backup)
    ===================================================================== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'sol_';
@@ -1587,10 +1593,7 @@ function dailyStreak() {
 function renderHome() {
   applyLang();
   $('#verLbl').textContent = 'v' + APP_VERSION;
-  $('#heroFan').innerHTML = [0, 13, 26, 39].map((c, i) => cardHTML(c, '', 'style="transform:translateX(-50%) rotate(' + (-24 + i * 16) + 'deg)"')).join('');
-  const mini = (cs, dx, dy) => cs.map((c, i) => cardHTML(c, '', 'style="left:' + (6 + i * dx) + 'px;top:' + (2 + i * dy) + 'px"')).join('');
-  const ICN = { klondike: [[25, 11, 36], 0, 9], freecell: [[13, 9, 34], 10, 4], spider: [[12, 11, 10], 6, 6], pyramid: [[5, 20, 44], 9, 0], tripeaks: [[30, 4, 45], 8, -3], golf: [[2, 15, 41], 9, 3], canfield: [[19, 32, 6], 3, 3], yukon: [[51, 23, 49], 2, 9] };
-  if (!$('#games').children.length) $('#games').innerHTML = GAME_KEYS.map(g => '<button class="game" data-g="' + g + '"><span class="gi">' + mini(...ICN[g]) + '</span><span class="gt"><b>' + esc(GNAME(g)) + '</b><span class="gs"></span></span></button>').join('');
+  if (!$('#games').children.length) $('#games').innerHTML = GAME_KEYS.map(g => '<button class="game" data-g="' + g + '"><img class="gimg" src="img/g-' + g + '.webp" alt=""><span class="gt"><b>' + esc(GNAME(g)) + '</b><span class="gs"></span></span></button>').join('');
   $$('#games [data-g] b').forEach(b => b.textContent = GNAME(b.closest('[data-g]').dataset.g));
   const c = $('#mCont');
   if (G && G.S && !G.S.won && G.started) { c.classList.remove('hide'); $('#mContSub').textContent = gameTitle(G.S.g, G.S.opt) + ' · ' + T('movesN', NF(G.S.moves)); }
@@ -1611,7 +1614,7 @@ function setupBox(g) {
   let draw = g === 'canfield' ? (ST.cDraw || 3) : ST.kDraw, suits = ST.sSuits, win = ST.kWin, score = ST.kScore;
   const o = overlay('<div id="suB"></div>');
   function draw_() {
-    let h = '<h3>' + GICON[g] + ' ' + esc(GNAME(g)) + '</h3><p class="muted">' + esc(T('g' + g[0].toUpperCase() + g.slice(1) + 'Long')) + '</p>';
+    let h = '<h3 class="gh"><img src="img/g-' + g + '.webp" alt="">' + esc(GNAME(g)) + '</h3><p class="muted">' + esc(T('g' + g[0].toUpperCase() + g.slice(1) + 'Long')) + '</p>';
     if (g === 'klondike') {
       h += '<label class="f">' + esc(T('drawLbl')) + '</label><div class="seg" data-sk="draw"><button data-v="1" class="' + (draw === 1 ? 'on' : '') + '">' + esc(T('draw1')) + '</button><button data-v="3" class="' + (draw === 3 ? 'on' : '') + '">' + esc(T('draw3')) + '</button></div><p class="sub">' + esc(T(draw === 3 ? 'draw3Sub' : 'draw1Sub')) + '</p>';
       h += '<label class="f">' + esc(T('scoringLbl')) + '</label><div class="seg" data-sk="score">' + [['std', 'scStd'], ['vegas', 'scVegas'], ['none', 'scNone']].map(([v, l]) => '<button data-v="' + v + '" class="' + (score === v ? 'on' : '') + '">' + esc(T(l)) + '</button>').join('') + '</div><p class="sub">' + esc(T(score === 'vegas' ? 'scVegasSub' : score === 'none' ? 'scNoneSub' : 'scStdSub')) + '</p>';
@@ -1678,7 +1681,7 @@ function renderStats() {
   const KEYS = [['klondike1', T('gKlondike') + ' · ' + T('draw1')], ['klondike3', T('gKlondike') + ' · ' + T('draw3')], ['freecell', T('gFreecell')], ['spider1', T('gSpider') + ' · ' + T('suitsN', 1)], ['spider2', T('gSpider') + ' · ' + T('suitsN', 2)], ['spider4', T('gSpider') + ' · ' + T('suitsN', 4)], ['pyramid', T('gPyramid')], ['tripeaks', T('gTripeaks')], ['golf', T('gGolf')], ['canfield3', T('gCanfield') + ' · ' + T('draw3')], ['canfield1', T('gCanfield') + ' · ' + T('draw1')], ['yukon', T('gYukon')]];
   for (const [k, lab] of KEYS) {
     const b = S[k]; if (!b || !b.played) continue;
-    h += '<div class="card"><h3>' + GICON[k.replace(/\d/g, '')] + ' ' + esc(lab) + '</h3><table class="tbl">' +
+    h += '<div class="card"><h3 class="gh"><img src="img/g-' + k.replace(/\d/g, '') + '.webp" alt="">' + esc(lab) + '</h3><table class="tbl">' +
       '<tr><td>' + esc(T('gamesWon')) + '</td><td>' + iso(NF(b.won) + ' / ' + NF(b.played)) + '</td><td>' + pct(b.won, b.played) + '</td></tr>' +
       (b.best ? '<tr><td>' + esc(T('bestT')) + '</td><td>' + fmtT(b.best * 1000) + '</td><td></td></tr>' : '') +
       (b.won ? '<tr><td>' + esc(T('avgT')) + '</td><td>' + fmtT(b.time / b.won * 1000) + '</td><td></td></tr>' : '') +
