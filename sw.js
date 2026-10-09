@@ -20,7 +20,7 @@
 })();
 
 /* SolitaireNest service worker — bump VERSION on every upload */
-const VERSION = 'solitairenest-v1';
+const VERSION = 'solitairenest-v2';
 const SHELL = ['./', 'manifest.json', 'icon-192.png', 'icon-512.png', 'privacy_policy.html',
   'img/back-blue.webp', 'img/back-red.webp', 'img/felt.webp', 'img/face-j.webp', 'img/face-q.webp', 'img/face-k.webp', 'img/win.webp'];
 const ROOT = new URL('./', self.registration.scope).href;

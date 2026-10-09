@@ -168,11 +168,14 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
 .daily .ic{font-size:30px}.daily b{display:block;font-size:19px}.daily span{font-size:13px;opacity:.85}
 .daily .stk{margin-inline-start:auto;font-weight:700;font-size:18px}
 .daily.done{opacity:.85}
-.games{display:grid;gap:10px}
-.game{display:flex;align-items:center;gap:14px;min-height:78px;padding:10px 14px;border-radius:16px;border:1.5px solid var(--acc);background:var(--panel);cursor:pointer;text-align:start;color:var(--ink)}
+.games{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.rtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.rtabs button{flex:1 1 30%;min-height:42px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);cursor:pointer;font-size:14px}.rtabs button.on{background:var(--acc);color:var(--accInk);border-color:var(--acc);font-weight:700}
+.game{display:flex;align-items:center;gap:10px;min-height:78px;padding:10px 10px;border-radius:16px;border:1.5px solid var(--acc);background:var(--panel);cursor:pointer;text-align:start;color:var(--ink)}
 .game .gi{width:58px;height:58px;position:relative;flex:none;--cw:30px}
 .game .gi .pc{position:absolute;--w:30px;top:6px}
-.game b{display:block;font-size:18px;font-family:var(--disp);font-weight:400}
+.game b{display:block;font-size:17px;font-family:var(--disp);font-weight:400;line-height:1.15}
+.game .gt{min-width:0}
+.game .gi{width:52px}
 .game .gs{font-size:13px;color:var(--muted)}
 .soon{margin:12px 2px 0;font-size:13px;color:var(--muted);text-align:center}
 .hero .heroArt2{position:absolute;inset-inline-end:8px;bottom:-26px;width:150px;height:110px;pointer-events:none}
@@ -240,11 +243,7 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
     </div>
     <button class="daily" id="mDaily"><span class="ic">📅</span><span><b data-t="daily"></b><span id="dSub"></span></span><span class="stk" id="dStreak"></span></button>
     <button class="mode main hide" id="mCont" style="width:100%;margin-bottom:12px"><span class="ic">▶</span><span><b data-t="continue"></b><span id="mContSub"></span></span></button>
-    <div class="games" id="games">
-      <button class="game" data-g="klondike"><span class="gi" id="giK"></span><span><b data-t="gKlondike"></b><span class="gs"></span></span></button>
-      <button class="game" data-g="freecell"><span class="gi" id="giF"></span><span><b data-t="gFreecell"></b><span class="gs"></span></span></button>
-      <button class="game" data-g="spider"><span class="gi" id="giS"></span><span><b data-t="gSpider"></b><span class="gs"></span></span></button>
-    </div>
+    <div class="games" id="games"></div>
     <p class="soon" data-t="soon"></p>
     <div class="minor">
       <button id="hRules"><i>📖</i><span data-t="rules"></span></button>
@@ -493,7 +492,218 @@ const SOL = (() => {
     }
   };
 
-  const GAMES = { klondike: K, freecell: F, spider: P };
+
+  const fitsPM = (a, b, wrap) => { const d = Math.abs(rank(a) - rank(b)); return d === 1 || (wrap && d === 12); };
+
+  /* ================= Pyramid: pairs that add up to 13 (K alone) ================= */
+  const PY_ROW = n => { let r = 0; while ((r + 1) * (r + 2) / 2 <= n) r++; return r; };
+  const PY_KIDS = R(28).map(n => { const r = PY_ROW(n), c = n - r * (r + 1) / 2; return r === 6 ? [] : [(r + 1) * (r + 2) / 2 + c, (r + 1) * (r + 2) / 2 + c + 1]; });
+  const Y = {
+    id: 'pyramid', nf: 0,
+    names: ['s', 'w', 'd', ...R(28).map(n => 'p' + n)],
+    deal(seed, opt) {
+      const d = shuffle(deck52(), rng(seed)), p = { s: [], w: [], d: [] };
+      for (let n = 0; n < 28; n++) p['p' + n] = [d.pop()];
+      p.s = d.map(down);
+      return { g: 'pyramid', seed, opt: opt || {}, p, moves: 0, score: 0, passes: 0, won: false };
+    },
+    avail: (S, pile) => S.p[pile].length > 0 && PY_KIDS[+pile.slice(1)].every(k => !S.p['p' + k].length),
+    maxRecycles: () => 2,
+    pickable(S, from, i) { const a = S.p[from]; if (!a || !a.length || i !== a.length - 1) return false; if (from === 'w') return true; return kind(from) === 'p' && Y.avail(S, from); },
+    canDrop(S, from, i, to) {
+      if (from === to || !Y.pickable(S, from, i)) return false;
+      const c = S.p[from][i];
+      if (to === 'd') return rank(c) === 12;
+      if (to !== 'w' && kind(to) !== 'p') return false;
+      if (!Y.pickable(S, to, S.p[to].length - 1)) return false;
+      return rank(c) + rank(top(S.p[to])) === 11;
+    },
+    move(S, from, i, to) {
+      const c = S.p[from].pop();
+      if (to === 'd') S.p.d.push(c); else S.p.d.push(c, S.p[to].pop());
+      S.score += to === 'd' ? 5 : 10; S.moves++; S.won = Y.won(S); return {};
+    },
+    stock(S) {
+      if (S.p.s.length) { S.p.w.push(cid(S.p.s.pop())); S.moves++; return 'draw'; }
+      if (S.p.w.length && S.passes < Y.maxRecycles(S)) { S.p.s = S.p.w.reverse().map(down); S.p.w = []; S.passes++; S.moves++; return 'recycle'; }
+      return false;
+    },
+    won: S => R(28).every(n => !S.p['p' + n].length),
+    canFinish: () => false, safeUp: () => null,
+    srcs: S => ['w', ...R(28).map(n => 'p' + n)],
+    dsts: S => ['d', 'w', ...R(28).map(n => 'p' + n)],
+    tapScore: (S, from, i, to) => to === 'd' ? 100 : to === 'w' ? 10 : 50 + PY_ROW(+to.slice(1)),
+    hints(S) {
+      const out = [], av = R(28).map(n => 'p' + n).filter(p => Y.avail(S, p));
+      for (const p of av) if (rank(top(S.p[p])) === 12) out.push({ from: p, i: 0, to: 'd' });
+      const srcs = av.concat(S.p.w.length ? ['w'] : []);
+      for (const a of srcs) for (const b of srcs) if (a < b && Y.canDrop(S, a, S.p[a].length - 1, b)) out.push(a === 'w' ? { from: b, i: 0, to: 'w' } : { from: a, i: 0, to: b });
+      if (S.p.w.length && rank(top(S.p.w)) === 12) out.push({ from: 'w', i: S.p.w.length - 1, to: 'd' });
+      if (S.p.s.length || (S.p.w.length && S.passes < 2)) out.push({ a: 'stock' });
+      return out;
+    }
+  };
+
+  /* ================= TriPeaks: one up or one down onto the waste ================= */
+  const TP_KIDS = R(28).map(n => {
+    if (n < 3) return [3 + 2 * n, 4 + 2 * n];
+    if (n < 9) { const j = n - 3, p = j >> 1, k = j & 1; return [9 + p * 3 + k, 9 + p * 3 + k + 1]; }
+    if (n < 18) { const j = n - 9; return [18 + j, 19 + j]; }
+    return [];
+  });
+  const TP = {
+    id: 'tripeaks', nf: 0,
+    names: ['s', 'w', ...R(28).map(n => 'q' + n)],
+    deal(seed, opt) {
+      opt = Object.assign({ wrap: true }, opt || {});
+      const d = shuffle(deck52(), rng(seed)), p = { s: [], w: [] };
+      for (let n = 0; n < 28; n++) { const c = d.pop(); p['q' + n] = [n >= 18 ? c : down(c)]; }
+      p.w = [d.pop()]; p.s = d.map(down);
+      return { g: 'tripeaks', seed, opt, p, moves: 0, score: 0, passes: 0, won: false, streak: 0 };
+    },
+    avail: (S, pile) => S.p[pile].length > 0 && TP_KIDS[+pile.slice(1)].every(k => !S.p['q' + k].length),
+    pickable(S, from, i) { return kind(from) === 'q' && i === 0 && S.p[from].length === 1 && up(S.p[from][0]) && TP.avail(S, from); },
+    canDrop(S, from, i, to) { if (to !== 'w' || !TP.pickable(S, from, i)) return false; const t = top(S.p.w); return t != null && fitsPM(S.p[from][0], t, S.opt.wrap); },
+    move(S, from, i, to) {
+      S.p.w.push(S.p[from].pop()); S.streak = (S.streak || 0) + 1; S.score += S.streak; S.moves++;
+      const ev = { flip: false };
+      for (let n = 0; n < 18; n++) { const a = S.p['q' + n]; if (a.length && !up(a[0]) && TP_KIDS[n].every(k => !S.p['q' + k].length)) { a[0] = cid(a[0]); ev.flip = true; } }
+      if (!S.p.q0.length && !S.p.q1.length && !S.p.q2.length) { }
+      S.won = TP.won(S); if (S.won) S.score += 50; return ev;
+    },
+    stock(S) { if (!S.p.s.length) return false; S.p.w.push(cid(S.p.s.pop())); S.streak = 0; S.moves++; return 'draw'; },
+    won: S => R(28).every(n => !S.p['q' + n].length),
+    canFinish: () => false, safeUp: () => null,
+    srcs: S => R(28).map(n => 'q' + n), dsts: () => ['w'],
+    hints(S) {
+      const out = R(28).map(n => 'q' + n).filter(q => TP.canDrop(S, q, 0, 'w')).map(q => ({ from: q, i: 0, to: 'w', sc: +q.slice(1) < 18 ? 1 : 2 }));
+      out.sort((a, b) => b.sc - a.sc);
+      if (S.p.s.length) out.push({ a: 'stock' });
+      return out;
+    }
+  };
+
+  /* ================= Golf: seven open columns, one up or one down, nothing on a king ================= */
+  const GO = {
+    id: 'golf', nf: 0,
+    names: ['s', 'w', ...R(7).map(i => 't' + i)],
+    deal(seed, opt) {
+      const d = shuffle(deck52(), rng(seed)), p = { s: [], w: [] };
+      for (let i = 0; i < 7; i++) p['t' + i] = d.splice(0, 5);
+      p.w = [d.pop()]; p.s = d.map(down);
+      return { g: 'golf', seed, opt: opt || {}, p, moves: 0, score: 35, passes: 0, won: false };
+    },
+    pickable(S, from, i) { return kind(from) === 't' && S.p[from].length > 0 && i === S.p[from].length - 1; },
+    canDrop(S, from, i, to) { if (to !== 'w' || !GO.pickable(S, from, i)) return false; const t = top(S.p.w); return t != null && rank(t) !== 12 && fitsPM(S.p[from][i], t, false); },
+    move(S, from, i, to) { S.p.w.push(S.p[from].pop()); S.moves++; S.score = R(7).reduce((a, k) => a + S.p['t' + k].length, 0); S.won = GO.won(S); return {}; },
+    stock(S) { if (!S.p.s.length) return false; S.p.w.push(cid(S.p.s.pop())); S.moves++; return 'draw'; },
+    won: S => R(7).every(i => !S.p['t' + i].length),
+    canFinish: () => false, safeUp: () => null,
+    srcs: S => R(7).map(i => 't' + i), dsts: () => ['w'],
+    hints(S) {
+      const out = R(7).map(i => 't' + i).filter(t => S.p[t].length && GO.canDrop(S, t, S.p[t].length - 1, 'w')).map(t => ({ from: t, i: S.p[t].length - 1, to: 'w', sc: S.p[t].length }));
+      out.sort((a, b) => b.sc - a.sc);
+      if (S.p.s.length) out.push({ a: 'stock' });
+      return out;
+    }
+  };
+
+  /* ================= Canfield: 13-card reserve, foundations from a base rank, wrapping K→A ================= */
+  const CF = {
+    id: 'canfield', nf: 4,
+    names: ['s', 'w', 'r', 'f0', 'f1', 'f2', 'f3', 't0', 't1', 't2', 't3'],
+    deal(seed, opt) {
+      opt = Object.assign({ draw: 3 }, opt || {});
+      const d = shuffle(deck52(), rng(seed)), p = { s: [], w: [] };
+      p.r = d.splice(0, 13).map((c, j) => j === 12 ? c : down(c));
+      for (let k = 0; k < 4; k++) p['f' + k] = [];
+      const b = d.pop(); p.f0 = [b];
+      for (let i = 0; i < 4; i++) p['t' + i] = [d.pop()];
+      p.s = d.map(down);
+      return { g: 'canfield', seed, opt, p, moves: 0, score: 5, passes: 0, won: false, base: rank(b) };
+    },
+    rel: (S, c) => (rank(c) - S.base + 13) % 13,
+    seqOk(a, i) { for (let j = i; j < a.length - 1; j++) if (red(a[j]) === red(a[j + 1]) || (rank(a[j]) + 12) % 13 !== rank(a[j + 1])) return false; return true; },
+    pickable(S, from, i) {
+      const a = S.p[from]; if (!a || i < 0 || i >= a.length || !up(a[i])) return false;
+      const k = kind(from); if (k === 'r' || k === 'w') return i === a.length - 1;
+      return k === 't' && CF.seqOk(a, i);
+    },
+    fFor(S, c) { for (let k = 0; k < 4; k++) { const f = S.p['f' + k], t = top(f); if (t == null ? rank(c) === S.base && !R(4).some(j => { const x = top(S.p['f' + j]); return x != null && suit(x) === suit(c); }) : suit(t) === suit(c) && (rank(t) + 1) % 13 === rank(c) && f.length < 13) return 'f' + k; } return null; },
+    canDrop(S, from, i, to) {
+      if (from === to || !CF.pickable(S, from, i)) return false;
+      const a = S.p[from], c = a[i], n = a.length - i, k = kind(to);
+      if (k === 'f') return n === 1 && CF.fFor(S, c) === to;
+      if (k === 't') { const t = top(S.p[to]); if (t == null) return true; return red(t) !== red(c) && (rank(t) + 12) % 13 === rank(c); }
+      return false;
+    },
+    fill(S) { for (let i = 0; i < 4; i++) if (!S.p['t' + i].length && S.p.r.length) { S.p['t' + i].push(cid(S.p.r.pop())); } const rt = top(S.p.r); if (rt != null && !up(rt)) S.p.r[S.p.r.length - 1] = cid(rt); },
+    move(S, from, i, to) {
+      const cs = S.p[from].splice(i); S.p[to].push(...cs.map(cid));
+      if (kind(to) === 'f') S.score += 5;
+      const rt = top(S.p.r); if (rt != null && !up(rt)) S.p.r[S.p.r.length - 1] = cid(rt);
+      CF.fill(S); S.moves++; S.won = CF.won(S); return {};
+    },
+    stock(S) {
+      if (S.p.s.length) { const n = Math.min(S.opt.draw, S.p.s.length); for (let k = 0; k < n; k++) S.p.w.push(cid(S.p.s.pop())); S.moves++; return 'draw'; }
+      if (S.p.w.length) { S.p.s = S.p.w.reverse().map(down); S.p.w = []; S.passes++; S.moves++; return 'recycle'; }
+      return false;
+    },
+    won: S => R(4).every(k => S.p['f' + k].length === 13),
+    canFinish: S => !S.p.s.length && !S.p.w.length && !S.p.r.length && (() => { const X = clone(S); for (let g = 0; g < 60; g++) { let m = null; for (const from of R(4).map(i => 't' + i)) { const c = top(X.p[from]); if (c != null) { const f = CF.fFor(X, c); if (f) { m = { from, to: f }; break; } } } if (!m) break; X.p[m.to].push(X.p[m.from].pop()); } return CF.won(X); })(),
+    srcs: S => ['r', 'w', ...R(4).map(i => 't' + i)],
+    dsts: S => [...R(4).map(k => 'f' + k), ...R(4).map(i => 't' + i)],
+    safeUp(S) { for (const from of ['r', 'w', 't0', 't1', 't2', 't3']) { const a = S.p[from], c = top(a); if (c == null || !up(c)) continue; const f = CF.fFor(S, c); if (f && CF.rel(S, c) <= 1) return { from, i: a.length - 1, to: f }; } return null; },
+    hints(S) {
+      const out = [], add = m => out.push(m);
+      for (const from of ['r', 'w', 't0', 't1', 't2', 't3']) { const a = S.p[from], c = top(a); if (c != null && up(c)) { const f = CF.fFor(S, c); if (f) add({ from, i: a.length - 1, to: f }); } }
+      if (S.p.r.length) for (let y = 0; y < 4; y++) if (S.p['t' + y].length && CF.canDrop(S, 'r', S.p.r.length - 1, 't' + y)) { add({ from: 'r', i: S.p.r.length - 1, to: 't' + y }); break; }
+      for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) if (x !== y && S.p['t' + y].length && S.p['t' + x].length && CF.canDrop(S, 't' + x, 0, 't' + y)) add({ from: 't' + x, i: 0, to: 't' + y });
+      if (S.p.w.length) for (let y = 0; y < 4; y++) if (CF.canDrop(S, 'w', S.p.w.length - 1, 't' + y)) { add({ from: 'w', i: S.p.w.length - 1, to: 't' + y }); break; }
+      if (S.p.s.length || S.p.w.length) out.push({ a: 'stock' });
+      return out;
+    }
+  };
+
+  /* ================= Yukon: Klondike without a stock; any face-up card moves with everything on it ================= */
+  const YU = {
+    id: 'yukon', nf: 4,
+    names: ['f0', 'f1', 'f2', 'f3', 't0', 't1', 't2', 't3', 't4', 't5', 't6'],
+    deal(seed, opt) {
+      const d = shuffle(deck52(), rng(seed)), p = {};
+      for (let k = 0; k < 4; k++) p['f' + k] = [];
+      for (let i = 0; i < 7; i++) { p['t' + i] = []; for (let j = 0; j <= i; j++) { const c = d.pop(); p['t' + i].push(j === i ? c : down(c)); } }
+      for (let i = 1; i < 7; i++) for (let j = 0; j < 4; j++) p['t' + i].push(d.pop());
+      return { g: 'yukon', seed, opt: opt || {}, p, moves: 0, score: 0, passes: 0, won: false };
+    },
+    pickable(S, from, i) { const a = S.p[from]; if (!a || i < 0 || i >= a.length || !up(a[i])) return false; if (kind(from) === 'f') return false; return kind(from) === 't'; },
+    canDrop(S, from, i, to) {
+      if (from === to || !YU.pickable(S, from, i)) return false;
+      const a = S.p[from], c = a[i], n = a.length - i, k = kind(to);
+      if (k === 'f') return n === 1 && fitsFound(S, to, c);
+      if (k === 't') { const t = top(S.p[to]); if (t == null) return rank(c) === 12; return up(t) && red(t) !== red(c) && rank(t) === rank(c) + 1; }
+      return false;
+    },
+    move(S, from, i, to) {
+      const a = S.p[from], cs = a.splice(i); S.p[to].push(...cs);
+      const nt = top(a); let flip = false; if (nt != null && !up(nt)) { a[a.length - 1] = cid(nt); flip = true; }
+      S.moves++; S.won = YU.won(S); return { flip };
+    },
+    stock: () => false,
+    won: S => R(4).every(k => S.p['f' + k].length === 13),
+    canFinish(S) { if (!R(7).every(i => S.p['t' + i].every(up))) return false; const X = clone(S); for (let g = 0; g < 60; g++) { let m = null; for (let i = 0; i < 7; i++) { const c = top(X.p['t' + i]); if (c == null) continue; const f = fFor(X, c, 4); if (f) { m = { from: 't' + i, to: f }; break; } } if (!m) break; X.p[m.to].push(X.p[m.from].pop()); } return YU.won(X) && !YU.won(S); },
+    srcs: S => R(7).map(i => 't' + i),
+    dsts: S => [...R(4).map(k => 'f' + k), ...R(7).map(i => 't' + i)],
+    safeUp(S) { for (let x = 0; x < 7; x++) { const a = S.p['t' + x], c = top(a); if (c == null || !up(c)) continue; const f = fFor(S, c, 4); if (f && safe(S, c, 4)) return { from: 't' + x, i: a.length - 1, to: f }; } return null; },
+    hints(S) {
+      const out = [], seen = new Set(), add = (m, sc) => { const k = m.from + m.i + m.to; if (!seen.has(k)) { seen.add(k); out.push(Object.assign(m, { sc })); } };
+      for (let x = 0; x < 7; x++) { const a = S.p['t' + x], c = top(a); if (c != null && up(c)) { const f = fFor(S, c, 4); if (f) add({ from: 't' + x, i: a.length - 1, to: f }, 10); } }
+      for (let x = 0; x < 7; x++) { const a = S.p['t' + x]; for (let i = 0; i < a.length; i++) { if (!up(a[i])) continue; for (let y = 0; y < 7; y++) { if (y === x || !YU.canDrop(S, 't' + x, i, 't' + y)) continue; const reveals = i > 0 && !up(a[i - 1]), empties = i === 0 && rank(a[0]) !== 12; if (!S.p['t' + y].length && !reveals) continue; add({ from: 't' + x, i, to: 't' + y }, reveals ? 6 : empties ? 4 : 1); } } }
+      out.sort((a, b) => b.sc - a.sc); return out;
+    }
+  };
+
+  const GAMES = { klondike: K, freecell: F, spider: P, pyramid: Y, tripeaks: TP, golf: GO, canfield: CF, yukon: YU };
   const G = S => GAMES[S.g];
   /* where a tapped card should go: foundation, then the best column, then an empty column / free cell */
   function smartTarget(S, from, i) {
@@ -502,6 +712,7 @@ const SOL = (() => {
     const ds = g.dsts(S).filter(to => g.canDrop(S, from, i, to));
     if (!ds.length) return null;
     const score = to => {
+      if (g.tapScore) return g.tapScore(S, from, i, to);
       const k = kind(to), d = S.p[to], t = top(d);
       if (k === 'f') return kind(from) === 'f' ? -1 : 100;
       if (k === 'c') return 1;
@@ -512,7 +723,7 @@ const SOL = (() => {
     ds.sort((x, y) => score(y) - score(x));
     return score(ds[0]) < 0 ? null : ds[0];
   }
-  return { GAMES, G, up, cid, down, suit, rank, red, top, rng, shuffle, clone, smartTarget, kind, safe };
+  return { GAMES, G, up, cid, down, suit, rank, red, top, rng, shuffle, clone, smartTarget, kind, safe, PY_KIDS, TP_KIDS, PY_ROW };
 })();
 
 
@@ -524,7 +735,7 @@ const KWIN = { 1: [4,8,12,16,18,19,20,21,22,23,29,31,33,36,37,39,42,47,50,53,54,
 /* =====================================================================
    SolitaireNest — app core (storage · settings · screens · cards · sound · backup)
    ===================================================================== */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'sol_';
@@ -672,12 +883,12 @@ function restore(file) {
 
 /* ---- i18n/he.js ---- */
 LANG.he = {
-appName:"סוליטר", tagline:"קלונדייק, פריסל ועכביש — עם חלוקה יומית, ביטול בלי הגבלה ורמזים. עובד גם בלי אינטרנט.",
+appName:"סוליטר", tagline:"שמונה משחקי סוליטר קלאסיים — עם חלוקה יומית, ביטול בלי הגבלה ורמזים. עובד גם בלי אינטרנט.",
 continue:"המשך משחק", movesN:"{0} מהלכים", daily:"החלוקה היומית", dailySub:"קלונדייק פתיר — אותה חלוקה לכולם היום", dailyDoneT:"ניצחת היום ב-{0} ✓ — חזור מחר", dailyAlready:"כבר פתרת את החלוקה של היום — אפשר לשחק בה שוב בשביל הכיף", dailyDone:"החלוקה היומית נפתרה!", dailyCount:"חלוקות יומיות שפתרת",
 gKlondike:"קלונדייק", gFreecell:"פריסל", gSpider:"עכביש",
 gKlondikeSub:"הסוליטר הקלאסי", gFreecellSub:"הכל גלוי — משחק של חשיבה", gSpiderSub:"שתי חפיסות, בונים סדרות",
 gKlondikeLong:"מסדרים את הקלפים לפי צורה מאס עד מלך. בונים על השולחן בסדר יורד ובצבעים מתחלפים.", gFreecellLong:"כל הקלפים גלויים. ארבעה תאים פנויים עוזרים לך להזיז קלפים. כמעט כל חלוקה ניתנת לפתרון.", gSpiderLong:"בונים סדרות מלאות ממלך עד אס באותה צורה — וכל סדרה מלאה יוצאת מהשולחן.",
-soon:"בקרוב: פירמידה, טרייפיקס, גולף, קנפילד, יוקון ועוד",
+soon:"בקרוב: סוליטר רוסי, עקרב, ארבעים גנבים, תריסר האופה ושעון",
 rules:"חוקים", stats:"סטטיסטיקה", settings:"הגדרות", about:"אודות",
 drawLbl:"כמה קלפים פותחים מהחפיסה", draw1:"קלף אחד", draw3:"שלושה", draw1Sub:"קל יותר — רוב החלוקות פתירות.", draw3Sub:"הקלאסי הקשה — רק הקלף העליון מתוך השלושה זמין.",
 scoringLbl:"ניקוד", scStd:"רגיל", scVegas:"וגאס", scNone:"בלי", scStdSub:"נקודות על מהלכים טובים, ובונוס על זמן מהיר.", scVegasSub:"כל חלוקה \"עולה\" 52, וכל קלף שעולה לאסים מחזיר 5. כסף וירטואלי בלבד.", scNoneSub:"רק זמן ומהלכים.",
@@ -703,17 +914,37 @@ rulesF2:"<h3>הזזת קבוצה</h3><p>מזיזים קלף אחד בכל פעם
 rulesS1:"<h3>המטרה</h3><p>לבנות <b>8 סדרות מלאות</b> ממלך עד אס <b>באותה צורה</b>. סדרה מלאה יוצאת מהשולחן לבד.</p><h3>השולחן</h3><p>10 עמודות, שתי חפיסות. אפשר להניח קלף על קלף שגבוה ממנו באחד — <b>בכל צורה</b>. אבל להזיז קבוצה אפשר רק כשהיא <b>באותה צורה</b> ובסדר יורד. עמודה ריקה מקבלת כל קלף או קבוצה.</p>",
 rulesS2:"<h3>החפיסה</h3><p>הקשה על החפיסה מחלקת קלף אחד לכל עמודה (5 פעמים במשחק). אי אפשר לחלק כשיש עמודה ריקה.</p><h3>ניקוד</h3><p>מתחילים ב-500. כל מהלך מוריד 1, וכל סדרה מלאה מוסיפה 100.</p><h3>טיפים</h3><ul><li>עדיף לבנות באותה צורה.</li><li>הפוך קלפים סגורים כמה שיותר מוקדם.</li><li>עמודה ריקה היא נכס — אל תמלא אותה סתם.</li></ul>",
 rulesCommon:"<h3>בכל המשחקים</h3><ul><li><b>הקשה</b> על קלף שולחת אותו למקום הכי טוב.</li><li><b>גרירה</b> — כשרוצים לבחור לבד. הקלף נמשך למקום החוקי הקרוב.</li><li><b>↶ בטל</b> בלי הגבלה, <b>💡 רמז</b> כשנתקעים.</li><li><b>✨ סיים</b> מופיע כשהמשחק כבר פתור.</li></ul>",
-timeBonus:"בונוס זמן"
+timeBonus:"בונוס זמן",
+gPyramid:"פירמידה",
+gTripeaks:"טרייפיקס",
+gGolf:"גולף",
+gCanfield:"קנפילד",
+gYukon:"יוקון",
+gPyramidSub:"זוגות שסכומם 13",
+gTripeaksSub:"שלוש פסגות, אחד למעלה או למטה",
+gGolfSub:"מהיר ומאתגר",
+gCanfieldSub:"עם קופה של 13 קלפים",
+gYukonSub:"כמו קלונדייק — בלי חפיסה",
+gPyramidLong:"מוציאים זוגות של קלפים שסכומם 13. מלך יוצא לבד. מנצחים כשהפירמידה ריקה.",
+gTripeaksLong:"מעבירים לערימה קלף אחד למעלה או אחד למטה מהקלף הפתוח. מנקים את שלוש הפסגות.",
+gGolfLong:"מעבירים לערימה קלף אחד למעלה או למטה מהעליון — עד שהשולחן ריק. על מלך אי אפשר להניח כלום.",
+gCanfieldLong:"קופה של 13 קלפים, וערימות אסים שמתחילות מהקלף הראשון שנפתח. קשה ומספק.",
+gYukonLong:"כל הקלפים בשולחן, ואפשר להזיז כל קלף גלוי יחד עם כל מה שמעליו — גם אם הוא לא מסודר.",
+rulesY:"<h3>המטרה</h3><p>לפנות את כל ה<b>פירמידה</b> (28 קלפים).</p><h3>איך</h3><p>מוציאים <b>זוג קלפים שסכומם 13</b>: אס=1, נסיך=11, מלכה=12. למשל 6+7, 4+9, מלכה+אס. <b>מלך</b> (13) יוצא לבד.</p><p>רק קלף <b>שאף קלף לא מכסה</b> אותו זמין. אפשר לזווג גם עם הקלף העליון בערימה שליד החפיסה.</p><p>הקשה על קלף מוציאה אותו עם בן הזוג הכי טוב. רוצה לבחור? גרור אותו על בן הזוג.</p><h3>החפיסה</h3><p>הקשה פותחת קלף. אפשר לעבור על החפיסה <b>שלוש פעמים</b>.</p>",
+rulesTP:"<h3>המטרה</h3><p>לפנות את <b>שלוש הפסגות</b> (28 קלפים).</p><h3>איך</h3><p>מעבירים לערימה הפתוחה קלף <b>אחד למעלה או אחד למטה</b> ממנה, בלי קשר לצורה. מלך ואס מתחברים. קלף נפתח כשאין קלפים שמכסים אותו.</p><p>אין מהלך? הקשה על החפיסה פותחת קלף חדש (מעבר אחד בלבד).</p><h3>ניקוד</h3><p>כל קלף ברצף שווה יותר: הראשון 1, השני 2, השלישי 3... קלף מהחפיסה מאפס את הרצף. ניקוי כל הפסגות: 50 בונוס.</p>",
+rulesGO:"<h3>המטרה</h3><p>לפנות את <b>שבע העמודות</b> (35 קלפים, כולם גלויים).</p><h3>איך</h3><p>מעבירים לערימה את הקלף <b>התחתון</b> של עמודה אם הוא <b>אחד למעלה או אחד למטה</b> מהקלף בערימה, בלי קשר לצורה. <b>על מלך אי אפשר להניח כלום</b>, ומלך ואס לא מתחברים.</p><p>אין מהלך? הקשה על החפיסה פותחת קלף (מעבר אחד בלבד).</p><h3>ניקוד</h3><p>כמו בגולף — כמה שפחות. הניקוד הוא מספר הקלפים שנשארו בשולחן.</p>",
+rulesCF:"<h3>המטרה</h3><p>להעביר את כל הקלפים ל<b>ארבע ערימות האסים</b>.</p><h3>הסידור</h3><p><b>קופה</b> של 13 קלפים (רק העליון גלוי), 4 עמודות, ועוד קלף אחד שנפתח לערימת האסים הראשונה — <b>הוא קובע ממה מתחילים</b>. אם נפתח 7, כל ערימות האסים מתחילות מ-7 ועולות: 7, 8... מלך, אס, 2... עד 6.</p><h3>השולחן</h3><p>בונים <b>בסדר יורד ובצבעים מתחלפים</b>, ואחרי אס בא מלך. עמודה שהתרוקנה מתמלאת לבד מהקופה. כשהקופה נגמרה — אפשר לשים בעמודה ריקה כל קלף.</p><h3>החפיסה</h3><p>פותחים שלושה (או אחד), ומעברים בלי הגבלה.</p>",
+rulesYU:"<h3>המטרה</h3><p>להעביר את כל הקלפים ל<b>ארבע ערימות האסים</b>, לפי צורה מאס עד מלך.</p><h3>השולחן</h3><p>7 עמודות כמו בקלונדייק, אבל <b>אין חפיסה</b> — כל הקלפים כבר בשולחן. בונים <b>בסדר יורד ובצבעים מתחלפים</b>.</p><p>הייחוד: אפשר להזיז <b>כל קלף גלוי יחד עם כל הקלפים שמעליו</b> — גם אם הם לא מסודרים. עמודה ריקה מקבלת רק מלך (עם מה שמעליו).</p>"
 };
 
 /* ---- i18n/en.js ---- */
 LANG.en = {
-appName:"Solitaire", tagline:"Klondike, FreeCell and Spider — with a daily deal, unlimited undo and hints. Works offline too.",
+appName:"Solitaire", tagline:"Eight classic solitaire games — with a daily deal, unlimited undo and hints. Works offline too.",
 continue:"Continue", movesN:"{0} moves", daily:"Daily deal", dailySub:"A winnable Klondike — the same deal for everyone today", dailyDoneT:"Solved today in {0} ✓ — come back tomorrow", dailyAlready:"You already solved today's deal — play it again just for fun", dailyDone:"Daily deal solved!", dailyCount:"Daily deals solved",
 gKlondike:"Klondike", gFreecell:"FreeCell", gSpider:"Spider",
 gKlondikeSub:"The classic solitaire", gFreecellSub:"Everything open — a game of planning", gSpiderSub:"Two decks, build full runs",
 gKlondikeLong:"Sort the cards by suit from Ace to King. On the table, build down in alternating colours.", gFreecellLong:"All cards are open. Four free cells help you move cards around. Almost every deal can be solved.", gSpiderLong:"Build full runs from King to Ace in one suit — every complete run leaves the table.",
-soon:"Coming soon: Pyramid, TriPeaks, Golf, Canfield, Yukon and more",
+soon:"Coming soon: Russian Solitaire, Scorpion, Forty Thieves, Baker's Dozen and Clock",
 rules:"Rules", stats:"Stats", settings:"Settings", about:"About",
 drawLbl:"Cards to turn from the stock", draw1:"One card", draw3:"Three", draw1Sub:"Easier — most deals can be won.", draw3Sub:"The hard classic — only the top one of the three is available.",
 scoringLbl:"Scoring", scStd:"Standard", scVegas:"Vegas", scNone:"None", scStdSub:"Points for good moves and a bonus for a fast time.", scVegasSub:"Each deal \"costs\" 52 and every card sent up to the aces pays 5. Virtual money only.", scNoneSub:"Just time and moves.",
@@ -739,17 +970,37 @@ rulesF2:"<h3>Moving a group</h3><p>Officially you move one card at a time, but t
 rulesS1:"<h3>Goal</h3><p>Build <b>8 full runs</b> from King to Ace <b>in one suit</b>. A full run leaves the table by itself.</p><h3>The table</h3><p>10 columns, two decks. A card can go on a card one higher — <b>any suit</b>. But you can only move a group when it is <b>one suit</b> and in order. An empty column takes any card or group.</p>",
 rulesS2:"<h3>The stock</h3><p>Tap the stock to deal one card to every column (5 times per game). You can't deal while a column is empty.</p><h3>Scoring</h3><p>You start at 500. Every move costs 1, and every full run adds 100.</p><h3>Tips</h3><ul><li>Build in the same suit whenever you can.</li><li>Turn face-down cards as early as possible.</li><li>An empty column is an asset — don't fill it for nothing.</li></ul>",
 rulesCommon:"<h3>In every game</h3><ul><li><b>Tap</b> a card to send it to the best place.</li><li><b>Drag</b> when you want to choose. The card snaps to the nearest legal spot.</li><li><b>↶ Undo</b> without limits, <b>💡 Hint</b> when you're stuck.</li><li><b>✨ Finish</b> appears when the game is already solved.</li></ul>",
-timeBonus:"time bonus"
+timeBonus:"time bonus",
+gPyramid:"Pyramid",
+gTripeaks:"TriPeaks",
+gGolf:"Golf",
+gCanfield:"Canfield",
+gYukon:"Yukon",
+gPyramidSub:"Pairs that add up to 13",
+gTripeaksSub:"Three peaks, one up or one down",
+gGolfSub:"Quick and tricky",
+gCanfieldSub:"With a 13-card reserve",
+gYukonSub:"Like Klondike — no stock",
+gPyramidLong:"Remove pairs of cards that add up to 13. A King goes alone. You win when the pyramid is empty.",
+gTripeaksLong:"Move a card one up or one down from the open card onto the pile. Clear all three peaks.",
+gGolfLong:"Move a card one up or one down from the open one onto the pile — until the table is empty. Nothing goes on a King.",
+gCanfieldLong:"A 13-card reserve and foundations that start from the first card turned. Hard and satisfying.",
+gYukonLong:"All cards are on the table, and any face-up card moves with everything on top of it — even if it's not in order.",
+rulesY:"<h3>Goal</h3><p>Clear the whole <b>pyramid</b> (28 cards).</p><h3>How</h3><p>Remove a <b>pair of cards that adds up to 13</b>: Ace=1, Jack=11, Queen=12. For example 6+7, 4+9, Queen+Ace. A <b>King</b> (13) goes alone.</p><p>Only a card that <b>no other card covers</b> is available. You can also pair with the top card of the pile next to the stock.</p><p>Tap a card to remove it with its best partner. Want to choose? Drag it onto the partner.</p><h3>The stock</h3><p>Tap to turn a card. You can go through the stock <b>three times</b>.</p>",
+rulesTP:"<h3>Goal</h3><p>Clear the <b>three peaks</b> (28 cards).</p><h3>How</h3><p>Move a card <b>one up or one down</b> from the open pile onto it, any suit. King and Ace connect. A card opens when no cards cover it.</p><p>No move? Tap the stock to turn a new card (one pass only).</p><h3>Scoring</h3><p>Each card in a run is worth more: the first 1, the second 2, the third 3... A card from the stock resets the run. Clearing all peaks: 50 bonus.</p>",
+rulesGO:"<h3>Goal</h3><p>Clear the <b>seven columns</b> (35 cards, all face up).</p><h3>How</h3><p>Move the <b>bottom</b> card of a column onto the pile if it is <b>one up or one down</b> from the pile's card, any suit. <b>Nothing goes on a King</b>, and King and Ace don't connect.</p><p>No move? Tap the stock to turn a card (one pass only).</p><h3>Scoring</h3><p>Like golf — the lower the better. Your score is the number of cards left on the table.</p>",
+rulesCF:"<h3>Goal</h3><p>Move all cards to the <b>four foundations</b>.</p><h3>Setup</h3><p>A <b>reserve</b> of 13 cards (only the top one open), 4 columns, and one card turned onto the first foundation — <b>it sets the starting rank</b>. If it's a 7, every foundation starts at 7 and goes up: 7, 8... King, Ace, 2... up to 6.</p><h3>The table</h3><p>Build <b>down in alternating colours</b>; after an Ace comes a King. A column that empties is refilled from the reserve by itself. Once the reserve is gone, any card can go into an empty column.</p><h3>The stock</h3><p>Turn three (or one), with unlimited passes.</p>",
+rulesYU:"<h3>Goal</h3><p>Move all cards to the <b>four foundations</b>, by suit from Ace to King.</p><h3>The table</h3><p>7 columns like Klondike, but <b>no stock</b> — every card is already on the table. Build <b>down in alternating colours</b>.</p><p>The twist: you can move <b>any face-up card together with all the cards on top of it</b> — even if they're not in order. An empty column takes only a King (with whatever is on it).</p>"
 };
 
 /* ---- i18n/ru.js ---- */
 LANG.ru = {
-appName:"Пасьянс", tagline:"Клондайк, Свободная ячейка и Паук — с ежедневной раздачей, неограниченной отменой и подсказками. Работает и офлайн.",
+appName:"Пасьянс", tagline:"Восемь классических пасьянсов — с ежедневной раздачей, неограниченной отменой и подсказками. Работает и офлайн.",
 continue:"Продолжить", movesN:"Ходов: {0}", daily:"Раздача дня", dailySub:"Выигрышный Клондайк — сегодня одна раздача для всех", dailyDoneT:"Решено сегодня за {0} ✓ — возвращайтесь завтра", dailyAlready:"Вы уже решили сегодняшнюю раздачу — сыграйте ещё раз для удовольствия", dailyDone:"Раздача дня решена!", dailyCount:"Решено раздач дня",
 gKlondike:"Клондайк", gFreecell:"Свободная ячейка", gSpider:"Паук",
 gKlondikeSub:"Классический пасьянс", gFreecellSub:"Все карты открыты — игра на планирование", gSpiderSub:"Две колоды, собирайте полные ряды",
 gKlondikeLong:"Разложите карты по мастям от туза до короля. На столе стройте по убыванию, чередуя цвета.", gFreecellLong:"Все карты открыты. Четыре свободные ячейки помогают перемещать карты. Почти любую раздачу можно решить.", gSpiderLong:"Собирайте полные ряды от короля до туза одной масти — каждый готовый ряд уходит со стола.",
-soon:"Скоро: Пирамида, Три пика, Гольф, Канфилд, Юкон и другие",
+soon:"Скоро: Русский пасьянс, Скорпион, Сорок разбойников, Чёртова дюжина и Часы",
 rules:"Правила", stats:"Статистика", settings:"Настройки", about:"О приложении",
 drawLbl:"Сколько карт открывать из колоды", draw1:"Одну карту", draw3:"Три", draw1Sub:"Проще — большинство раздач можно выиграть.", draw3Sub:"Сложная классика — доступна только верхняя из трёх.",
 scoringLbl:"Подсчёт очков", scStd:"Стандартный", scVegas:"Вегас", scNone:"Без очков", scStdSub:"Очки за хорошие ходы и бонус за скорость.", scVegasSub:"Каждая раздача «стоит» 52, а каждая карта на базах приносит 5. Только виртуальные деньги.", scNoneSub:"Только время и ходы.",
@@ -775,17 +1026,37 @@ rulesF2:"<h3>Перемещение группы</h3><p>По правилам к
 rulesS1:"<h3>Цель</h3><p>Соберите <b>8 полных рядов</b> от короля до туза <b>одной масти</b>. Полный ряд сам уходит со стола.</p><h3>Стол</h3><p>10 столбцов, две колоды. Карту можно положить на карту на единицу старше — <b>любой масти</b>. Но группу можно перемещать, только если она <b>одной масти</b> и по порядку. В пустой столбец можно положить любую карту или группу.</p>",
 rulesS2:"<h3>Колода</h3><p>Коснитесь колоды, чтобы сдать по одной карте в каждый столбец (5 раз за игру). Нельзя сдавать, пока есть пустой столбец.</p><h3>Очки</h3><p>Вы начинаете с 500. Каждый ход стоит 1, а каждый полный ряд добавляет 100.</p><h3>Советы</h3><ul><li>По возможности стройте в одной масти.</li><li>Открывайте закрытые карты как можно раньше.</li><li>Пустой столбец — это ценность, не занимайте его зря.</li></ul>",
 rulesCommon:"<h3>В каждой игре</h3><ul><li><b>Коснитесь</b> карты, чтобы отправить её в лучшее место.</li><li><b>Перетащите</b>, если хотите выбрать сами. Карта встанет на ближайшее допустимое место.</li><li><b>↶ Отмена</b> без ограничений, <b>💡 Подсказка</b>, если вы застряли.</li><li><b>✨ Завершить</b> появляется, когда игра уже решена.</li></ul>",
-timeBonus:"бонус за время"
+timeBonus:"бонус за время",
+gCanfield:"Канфилд",
+gPyramid:"Пирамида",
+gTripeaks:"Три пика",
+gGolf:"Гольф",
+gYukon:"Юкон",
+rulesY:"<h3>Цель</h3><p>Разберите всю <b>пирамиду</b> (28 карт).</p><h3>Как играть</h3><p>Убирайте <b>пару карт, которые в сумме дают 13</b>: туз=1, валет=11, дама=12. Например, 6+7, 4+9, дама+туз. <b>Король</b> (13) уходит один.</p><p>Доступна только карта, которую <b>не накрывает ни одна другая</b>. Пару можно составить и с верхней картой стопки рядом с колодой.</p><p>Коснитесь карты, чтобы убрать её с лучшей парой. Хотите выбрать сами? Перетащите её на пару.</p><h3>Колода</h3><p>Коснитесь, чтобы открыть карту. Колоду можно пройти <b>три раза</b>.</p>",
+rulesTP:"<h3>Цель</h3><p>Разберите <b>три пика</b> (28 карт).</p><h3>Как играть</h3><p>Кладите на открытую стопку карту <b>на единицу старше или младше</b>, любой масти. Король и туз соединяются. Карта открывается, когда её не накрывают другие карты.</p><p>Нет хода? Коснитесь колоды, чтобы открыть новую карту (только один проход).</p><h3>Очки</h3><p>Каждая карта в серии ценится выше: первая — 1, вторая — 2, третья — 3... Карта из колоды обнуляет серию. За разбор всех пиков — бонус 50.</p>",
+rulesGO:"<h3>Цель</h3><p>Разберите <b>семь столбцов</b> (35 карт, все открыты).</p><h3>Как играть</h3><p>Переложите <b>нижнюю</b> карту столбца на стопку, если она <b>на единицу старше или младше</b> карты на стопке, любой масти. <b>На короля ничего не кладётся</b>, а король и туз не соединяются.</p><p>Нет хода? Коснитесь колоды, чтобы открыть карту (только один проход).</p><h3>Очки</h3><p>Как в гольфе — чем меньше, тем лучше. Ваш результат — число карт, оставшихся на столе.</p>",
+rulesCF:"<h3>Цель</h3><p>Переместите все карты на <b>четыре базы</b>.</p><h3>Расклад</h3><p><b>Резерв</b> из 13 карт (открыта только верхняя), 4 столбца и одна карта, открытая на первую базу, — <b>она задаёт начальное достоинство</b>. Если это 7, каждая база начинается с 7 и идёт вверх: 7, 8... король, туз, 2... до 6.</p><h3>Стол</h3><p>Стройте <b>по убыванию, чередуя цвета</b>; после туза идёт король. Опустевший столбец сам заполняется из резерва. Когда резерв закончится, в пустой столбец можно положить любую карту.</p><h3>Колода</h3><p>Открывайте по три (или по одной), проходы не ограничены.</p>",
+rulesYU:"<h3>Цель</h3><p>Переместите все карты на <b>четыре базы</b>, по мастям от туза до короля.</p><h3>Стол</h3><p>7 столбцов, как в Клондайке, но <b>колоды нет</b> — все карты уже на столе. Стройте <b>по убыванию, чередуя цвета</b>.</p><p>Особенность: можно перемещать <b>любую открытую карту вместе со всеми картами поверх неё</b> — даже если они не по порядку. В пустой столбец можно положить только короля (со всем, что на нём).</p>",
+gPyramidSub:"Пары, дающие в сумме 13",
+gPyramidLong:"Убирайте пары карт, дающие в сумме 13. Король уходит один. Вы побеждаете, когда пирамида пуста.",
+gTripeaksSub:"Три пика, на одну выше или ниже",
+gTripeaksLong:"Кладите на стопку карту на единицу старше или младше открытой. Разберите все три пика.",
+gGolfSub:"Быстро и хитро",
+gGolfLong:"Кладите на стопку карту на единицу старше или младше открытой — пока стол не опустеет. На короля ничего не кладётся.",
+gCanfieldSub:"С резервом из 13 карт",
+gCanfieldLong:"Резерв из 13 карт и базы, которые начинаются с первой открытой карты. Сложно и увлекательно.",
+gYukonSub:"Как Клондайк — без колоды",
+gYukonLong:"Все карты на столе, и любая открытая карта перемещается со всем, что лежит поверх неё, — даже если это не по порядку."
 };
 
 /* ---- i18n/es.js ---- */
 LANG.es = {
-appName:"Solitario", tagline:"Klondike, FreeCell y Araña — con partida diaria, deshacer ilimitado y pistas. También funciona sin conexión.",
+appName:"Solitario", tagline:"Ocho solitarios clásicos — con partida diaria, deshacer ilimitado y pistas. También funciona sin conexión.",
 continue:"Continuar", movesN:"{0} movimientos", daily:"Partida del día", dailySub:"Un Klondike con solución — la misma partida para todos hoy", dailyDoneT:"Resuelta hoy en {0} ✓ — vuelve mañana", dailyAlready:"Ya resolviste la partida de hoy — juégala otra vez por diversión", dailyDone:"¡Partida del día resuelta!", dailyCount:"Partidas del día resueltas",
 gKlondike:"Klondike", gFreecell:"FreeCell", gSpider:"Araña",
 gKlondikeSub:"El solitario clásico", gFreecellSub:"Todo a la vista — un juego de planificación", gSpiderSub:"Dos barajas, forma escaleras completas",
 gKlondikeLong:"Ordena las cartas por palo del As al Rey. En la mesa, construye en orden descendente alternando colores.", gFreecellLong:"Todas las cartas están a la vista. Cuatro celdas libres te ayudan a mover cartas. Casi todas las partidas tienen solución.", gSpiderLong:"Forma escaleras completas del Rey al As de un mismo palo — cada escalera completa sale de la mesa.",
-soon:"Próximamente: Pirámide, TriPeaks, Golf, Canfield, Yukon y más",
+soon:"Próximamente: Solitario ruso, Escorpión, Cuarenta ladrones, Docena del panadero y Reloj",
 rules:"Reglas", stats:"Estadísticas", settings:"Ajustes", about:"Acerca de",
 drawLbl:"Cartas a voltear del mazo", draw1:"Una carta", draw3:"Tres", draw1Sub:"Más fácil — se puede ganar la mayoría de las partidas.", draw3Sub:"El clásico difícil — solo está disponible la de arriba de las tres.",
 scoringLbl:"Puntuación", scStd:"Estándar", scVegas:"Vegas", scNone:"Ninguna", scStdSub:"Puntos por buenos movimientos y un bono por rapidez.", scVegasSub:"Cada partida \"cuesta\" 52 y cada carta enviada a las fundaciones paga 5. Solo dinero virtual.", scNoneSub:"Solo tiempo y movimientos.",
@@ -811,17 +1082,37 @@ rulesF2:"<h3>Mover un grupo</h3><p>Oficialmente se mueve una carta a la vez, per
 rulesS1:"<h3>Objetivo</h3><p>Forma <b>8 escaleras completas</b> del Rey al As <b>de un mismo palo</b>. Una escalera completa sale de la mesa sola.</p><h3>La mesa</h3><p>10 columnas, dos barajas. Una carta puede ir sobre otra un punto mayor — <b>de cualquier palo</b>. Pero solo puedes mover un grupo si es <b>de un mismo palo</b> y está en orden. En una columna vacía cabe cualquier carta o grupo.</p>",
 rulesS2:"<h3>El mazo</h3><p>Toca el mazo para repartir una carta en cada columna (5 veces por partida). No puedes repartir con una columna vacía.</p><h3>Puntuación</h3><p>Empiezas con 500. Cada movimiento cuesta 1 y cada escalera completa suma 100.</p><h3>Consejos</h3><ul><li>Construye en el mismo palo siempre que puedas.</li><li>Voltea las cartas boca abajo lo antes posible.</li><li>Una columna vacía es un tesoro — no la llenes porque sí.</li></ul>",
 rulesCommon:"<h3>En todos los juegos</h3><ul><li><b>Toca</b> una carta para enviarla al mejor lugar.</li><li><b>Arrastra</b> cuando quieras elegir. La carta se coloca en el sitio válido más cercano.</li><li><b>↶ Deshacer</b> sin límites, <b>💡 Pista</b> cuando te atasques.</li><li><b>✨ Terminar</b> aparece cuando la partida ya está resuelta.</li></ul>",
-timeBonus:"bonus de tiempo"
+timeBonus:"bonus de tiempo",
+gCanfield:"Canfield",
+gPyramid:"Pirámide",
+gTripeaks:"TriPeaks",
+gGolf:"Golf",
+gYukon:"Yukon",
+rulesY:"<h3>Objetivo</h3><p>Despeja toda la <b>pirámide</b> (28 cartas).</p><h3>Cómo</h3><p>Retira una <b>pareja de cartas que sume 13</b>: As=1, Jota=11, Reina=12. Por ejemplo 6+7, 4+9, Reina+As. Un <b>Rey</b> (13) sale solo.</p><p>Solo está disponible una carta que <b>ninguna otra cubre</b>. También puedes emparejar con la carta de arriba de la pila junto al mazo.</p><p>Toca una carta para retirarla con su mejor pareja. ¿Quieres elegir? Arrástrala sobre la pareja.</p><h3>El mazo</h3><p>Toca para voltear una carta. Puedes recorrer el mazo <b>tres veces</b>.</p>",
+rulesTP:"<h3>Objetivo</h3><p>Despeja los <b>tres picos</b> (28 cartas).</p><h3>Cómo</h3><p>Pasa a la pila abierta una carta <b>uno más o uno menos</b> que la de arriba, de cualquier palo. El Rey y el As se conectan. Una carta se abre cuando ninguna otra la cubre.</p><p>¿Sin jugadas? Toca el mazo para voltear una carta nueva (una sola pasada).</p><h3>Puntuación</h3><p>Cada carta de una racha vale más: la primera 1, la segunda 2, la tercera 3... Una carta del mazo reinicia la racha. Despejar todos los picos: 50 de bono.</p>",
+rulesGO:"<h3>Objetivo</h3><p>Despeja las <b>siete columnas</b> (35 cartas, todas boca arriba).</p><h3>Cómo</h3><p>Pasa a la pila la carta de <b>abajo</b> de una columna si es <b>uno más o uno menos</b> que la carta de la pila, de cualquier palo. <b>Sobre un Rey no va nada</b>, y el Rey y el As no se conectan.</p><p>¿Sin jugadas? Toca el mazo para voltear una carta (una sola pasada).</p><h3>Puntuación</h3><p>Como en el golf — cuanto menos, mejor. Tu puntuación es el número de cartas que quedan en la mesa.</p>",
+rulesCF:"<h3>Objetivo</h3><p>Lleva todas las cartas a las <b>cuatro fundaciones</b>.</p><h3>Preparación</h3><p>Una <b>reserva</b> de 13 cartas (solo la de arriba a la vista), 4 columnas y una carta volteada en la primera fundación — <b>ella marca el valor inicial</b>. Si es un 7, cada fundación empieza en 7 y sube: 7, 8... Rey, As, 2... hasta 6.</p><h3>La mesa</h3><p>Construye <b>en orden descendente alternando colores</b>; después del As viene el Rey. Una columna que se vacía se rellena sola desde la reserva. Cuando se acaba la reserva, cualquier carta puede ir a una columna vacía.</p><h3>El mazo</h3><p>Voltea de tres en tres (o de una en una), con pasadas ilimitadas.</p>",
+rulesYU:"<h3>Objetivo</h3><p>Lleva todas las cartas a las <b>cuatro fundaciones</b>, por palo del As al Rey.</p><h3>La mesa</h3><p>7 columnas como en Klondike, pero <b>sin mazo</b> — todas las cartas ya están en la mesa. Construye <b>en orden descendente alternando colores</b>.</p><p>La novedad: puedes mover <b>cualquier carta boca arriba junto con todas las cartas que tiene encima</b> — aunque no estén en orden. En una columna vacía solo cabe un Rey (con lo que tenga encima).</p>",
+gPyramidSub:"Parejas que suman 13",
+gPyramidLong:"Retira parejas de cartas que sumen 13. Un Rey sale solo. Ganas cuando la pirámide queda vacía.",
+gTripeaksSub:"Tres picos, uno más o uno menos",
+gTripeaksLong:"Pasa a la pila una carta uno más o uno menos que la carta abierta. Despeja los tres picos.",
+gGolfSub:"Rápido y astuto",
+gGolfLong:"Pasa a la pila una carta uno más o uno menos que la abierta — hasta vaciar la mesa. Sobre un Rey no va nada.",
+gCanfieldSub:"Con una reserva de 13 cartas",
+gCanfieldLong:"Una reserva de 13 cartas y fundaciones que empiezan desde la primera carta volteada. Difícil y satisfactorio.",
+gYukonSub:"Como Klondike — sin mazo",
+gYukonLong:"Todas las cartas están en la mesa, y cualquier carta boca arriba se mueve con todo lo que tiene encima — aunque no esté en orden."
 };
 
 /* ---- i18n/ar.js ---- */
 LANG.ar = {
-appName:"سوليتير", tagline:"كلوندايك وفري سيل والعنكبوت — مع توزيعة يومية وتراجع غير محدود وتلميحات. يعمل أيضًا دون اتصال.",
+appName:"سوليتير", tagline:"ثماني ألعاب سوليتير كلاسيكية — مع توزيعة يومية وتراجع غير محدود وتلميحات. يعمل أيضًا دون اتصال.",
 continue:"متابعة", movesN:"{0} حركة", daily:"توزيعة اليوم", dailySub:"كلوندايك قابل للحل — التوزيعة نفسها للجميع اليوم", dailyDoneT:"حُلّت اليوم في {0} ✓ — عُد غدًا", dailyAlready:"لقد حللت توزيعة اليوم — العبها مجددًا للمتعة فقط", dailyDone:"تم حل توزيعة اليوم!", dailyCount:"توزيعات يومية محلولة",
 gKlondike:"كلوندايك", gFreecell:"فري سيل", gSpider:"العنكبوت",
 gKlondikeSub:"السوليتير الكلاسيكي", gFreecellSub:"كل الأوراق مكشوفة — لعبة تخطيط", gSpiderSub:"مجموعتا أوراق، كوّن تسلسلات كاملة",
 gKlondikeLong:"رتّب الأوراق حسب النوع من الآص إلى الملك. على الطاولة، رتّب تنازليًا بألوان متناوبة.", gFreecellLong:"كل الأوراق مكشوفة. أربع خلايا فارغة تساعدك على نقل الأوراق. يمكن حل كل توزيعة تقريبًا.", gSpiderLong:"كوّن تسلسلات كاملة من الملك إلى الآص من نوع واحد — كل تسلسل مكتمل يغادر الطاولة.",
-soon:"قريبًا: الهرم، تراي بيكس، الغولف، كانفيلد، يوكون والمزيد",
+soon:"قريبًا: السوليتير الروسي، العقرب، الأربعون لصًا، دزينة الخبّاز والساعة",
 rules:"القواعد", stats:"الإحصائيات", settings:"الإعدادات", about:"حول",
 drawLbl:"عدد الأوراق المسحوبة من الرزمة", draw1:"ورقة واحدة", draw3:"ثلاث", draw1Sub:"أسهل — يمكن الفوز بمعظم التوزيعات.", draw3Sub:"الكلاسيكي الصعب — العليا فقط من الثلاث متاحة.",
 scoringLbl:"احتساب النقاط", scStd:"قياسي", scVegas:"فيغاس", scNone:"بدون", scStdSub:"نقاط للحركات الجيدة ومكافأة للسرعة.", scVegasSub:"كل توزيعة \"تكلّف\" 52 وكل ورقة تُرسل إلى الأساسات تربح 5. أموال افتراضية فقط.", scNoneSub:"الوقت والحركات فقط.",
@@ -847,7 +1138,27 @@ rulesF2:"<h3>نقل مجموعة</h3><p>رسميًا تُنقل ورقة واح�
 rulesS1:"<h3>الهدف</h3><p>كوّن <b>8 تسلسلات كاملة</b> من الملك إلى الآص <b>من نوع واحد</b>. التسلسل الكامل يغادر الطاولة وحده.</p><h3>الطاولة</h3><p>10 أعمدة، مجموعتا أوراق. يمكن وضع الورقة على ورقة أعلى منها بدرجة — <b>من أي نوع</b>. لكن لا يمكنك نقل مجموعة إلا إذا كانت <b>من نوع واحد</b> ومرتبة. العمود الفارغ يقبل أي ورقة أو مجموعة.</p>",
 rulesS2:"<h3>الرزمة</h3><p>المس الرزمة لتوزيع ورقة على كل عمود (5 مرات في كل لعبة). لا يمكنك التوزيع وهناك عمود فارغ.</p><h3>النقاط</h3><p>تبدأ بـ 500. كل حركة تكلّف 1، وكل تسلسل كامل يضيف 100.</p><h3>نصائح</h3><ul><li>رتّب من النوع نفسه كلما أمكن.</li><li>اكشف الأوراق المقلوبة في أقرب وقت.</li><li>العمود الفارغ ثروة — لا تملأه بلا سبب.</li></ul>",
 rulesCommon:"<h3>في كل لعبة</h3><ul><li><b>المس</b> ورقة لإرسالها إلى أفضل مكان.</li><li><b>اسحب</b> عندما تريد الاختيار. تستقر الورقة في أقرب مكان مسموح.</li><li><b>↶ تراجع</b> بلا حدود، و<b>💡 تلميح</b> عندما تعلق.</li><li><b>✨ إنهاء</b> يظهر عندما تكون اللعبة محلولة.</li></ul>",
-timeBonus:"مكافأة الوقت"
+timeBonus:"مكافأة الوقت",
+gCanfield:"كانفيلد",
+gPyramid:"الهرم",
+gTripeaks:"القمم الثلاث",
+gGolf:"الغولف",
+gYukon:"يوكون",
+rulesY:"<h3>الهدف</h3><p>أفرغ <b>الهرم</b> كله (28 ورقة).</p><h3>الطريقة</h3><p>أزل <b>زوجًا من الأوراق مجموعه 13</b>: الآص=1، الولد=11، الملكة=12. مثلًا 6+7، 4+9، ملكة+آص. <b>الملك</b> (13) يخرج وحده.</p><p>الورقة المتاحة فقط هي التي <b>لا تغطيها أي ورقة أخرى</b>. يمكنك أيضًا المزاوجة مع الورقة العليا في الكومة بجانب الرزمة.</p><p>المس ورقة لإزالتها مع أفضل شريك لها. تريد الاختيار؟ اسحبها إلى شريكها.</p><h3>الرزمة</h3><p>المس لكشف ورقة. يمكنك المرور على الرزمة <b>ثلاث مرات</b>.</p>",
+rulesTP:"<h3>الهدف</h3><p>أفرغ <b>القمم الثلاث</b> (28 ورقة).</p><h3>الطريقة</h3><p>انقل إلى الكومة المكشوفة ورقة <b>أعلى بواحد أو أدنى بواحد</b> منها، من أي نوع. الملك والآص يتصلان. تنكشف الورقة عندما لا تغطيها أوراق أخرى.</p><p>لا توجد حركة؟ المس الرزمة لكشف ورقة جديدة (دورة واحدة فقط).</p><h3>النقاط</h3><p>كل ورقة في السلسلة تساوي أكثر: الأولى 1، الثانية 2، الثالثة 3... ورقة من الرزمة تُصفّر السلسلة. إفراغ كل القمم: مكافأة 50.</p>",
+rulesGO:"<h3>الهدف</h3><p>أفرغ <b>الأعمدة السبعة</b> (35 ورقة، كلها مكشوفة).</p><h3>الطريقة</h3><p>انقل الورقة <b>السفلى</b> من عمود إلى الكومة إذا كانت <b>أعلى بواحد أو أدنى بواحد</b> من ورقة الكومة، من أي نوع. <b>لا يوضع شيء على الملك</b>، والملك والآص لا يتصلان.</p><p>لا توجد حركة؟ المس الرزمة لكشف ورقة (دورة واحدة فقط).</p><h3>النقاط</h3><p>كما في الغولف — الأقل أفضل. نتيجتك هي عدد الأوراق المتبقية على الطاولة.</p>",
+rulesCF:"<h3>الهدف</h3><p>انقل كل الأوراق إلى <b>الأساسات الأربعة</b>.</p><h3>الترتيب</h3><p><b>احتياطي</b> من 13 ورقة (العليا فقط مكشوفة)، و4 أعمدة، وورقة واحدة تُكشف على الأساس الأول — <b>هي التي تحدد قيمة البداية</b>. إذا كانت 7، يبدأ كل أساس من 7 ويصعد: 7، 8... ملك، آص، 2... حتى 6.</p><h3>الطاولة</h3><p>رتّب <b>تنازليًا بألوان متناوبة</b>؛ وبعد الآص يأتي الملك. العمود الذي يفرغ يمتلئ تلقائيًا من الاحتياطي. عندما ينفد الاحتياطي، يمكن وضع أي ورقة في العمود الفارغ.</p><h3>الرزمة</h3><p>اكشف ثلاثًا (أو واحدة)، مع دورات غير محدودة.</p>",
+rulesYU:"<h3>الهدف</h3><p>انقل كل الأوراق إلى <b>الأساسات الأربعة</b>، حسب النوع من الآص إلى الملك.</p><h3>الطاولة</h3><p>7 أعمدة كما في كلوندايك، لكن <b>بلا رزمة</b> — كل الأوراق على الطاولة من البداية. رتّب <b>تنازليًا بألوان متناوبة</b>.</p><p>الميزة: يمكنك نقل <b>أي ورقة مكشوفة مع كل الأوراق التي فوقها</b> — حتى لو لم تكن مرتبة. العمود الفارغ يقبل الملك فقط (مع ما فوقه).</p>",
+gPyramidSub:"أزواج مجموعها 13",
+gPyramidLong:"أزل أزواجًا من الأوراق مجموعها 13. الملك يخرج وحده. تفوز عندما يفرغ الهرم.",
+gTripeaksSub:"ثلاث قمم، أعلى أو أدنى بواحد",
+gTripeaksLong:"انقل إلى الكومة ورقة أعلى أو أدنى بواحد من الورقة المكشوفة. أفرغ القمم الثلاث.",
+gGolfSub:"سريعة ومخادعة",
+gGolfLong:"انقل إلى الكومة ورقة أعلى أو أدنى بواحد من المكشوفة — حتى تفرغ الطاولة. لا يوضع شيء على الملك.",
+gCanfieldSub:"مع احتياطي من 13 ورقة",
+gCanfieldLong:"احتياطي من 13 ورقة وأساسات تبدأ من أول ورقة تُكشف. صعبة وممتعة.",
+gYukonSub:"مثل كلوندايك — بلا رزمة",
+gYukonLong:"كل الأوراق على الطاولة، وأي ورقة مكشوفة تتحرك مع كل ما فوقها — حتى لو لم يكن مرتبًا."
 };
 
 /* ---- table.js ---- */
@@ -859,16 +1170,18 @@ timeBonus:"مكافأة الوقت"
    ===================================================================== */
 let G = LS.get('game', null);
 const saveGame = () => LS.set('game', G);
-const GAME_KEYS = ['klondike', 'freecell', 'spider'];
-const GICON = { klondike: '🂡', freecell: '🗝️', spider: '🕷️' };
+const GAME_KEYS = ['klondike', 'freecell', 'spider', 'pyramid', 'tripeaks', 'golf', 'canfield', 'yukon'];
+const GICON = { klondike: '🂡', freecell: '🗝️', spider: '🕷️', pyramid: '🔺', tripeaks: '⛰️', golf: '⛳', canfield: '🎩', yukon: '❄️' };
+const GNAME = g => T('g' + g[0].toUpperCase() + g.slice(1));
 let RECT = {}, LAY = null, BUSY = false, FIN = null, IDLE = 0;
 
 const GM = () => SOL.GAMES[G.S.g];
-function statKey(g, opt) { return g === 'klondike' ? 'klondike' + (opt.draw || 1) : g === 'spider' ? 'spider' + (opt.suits || 1) : g; }
+function statKey(g, opt) { return g === 'klondike' ? 'klondike' + (opt.draw || 1) : g === 'spider' ? 'spider' + (opt.suits || 1) : g === 'canfield' ? 'canfield' + (opt.draw === 1 ? 1 : 3) : g; }
 function gameTitle(g, opt) {
   if (g === 'klondike') return T('gKlondike') + ' · ' + T(opt.draw === 3 ? 'draw3' : 'draw1');
   if (g === 'spider') return T('gSpider') + ' · ' + T('suitsN', opt.suits || 1);
-  return T('gFreecell');
+  if (g === 'canfield') return T('gCanfield') + ' · ' + T(opt.draw === 1 ? 'draw1' : 'draw3');
+  return GNAME(g);
 }
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const dayIndex = s => Math.floor(Date.parse(s + 'T12:00:00Z') / 864e5);
@@ -937,7 +1250,7 @@ function after() {
   if (!S.won && ST.autoFinish && GM().canFinish(S) && !FIN) FIN = setTimeout(autoFinish, 450);
   // going round the stock with nothing else to do → say so once
   if (S.g === 'klondike' && IDLE > Math.ceil((S.p.s.length + S.p.w.length) / S.opt.draw) * 2 + 3 && !G.toldStuck) { G.toldStuck = true; noMoves(); }
-  if (S.g === 'spider' && !S.p.s.length && !GM().hints(S).length && !G.toldStuck) { G.toldStuck = true; noMoves(); }
+  if ((S.g === 'spider' || S.g === 'pyramid' || S.g === 'tripeaks' || S.g === 'golf') && !S.won && !GM().hints(S).length && !G.toldStuck) { G.toldStuck = true; setTimeout(noMoves, 350); }
 }
 function noMoves() {
   const o = overlay('<h3>' + esc(T('noMovesT')) + '</h3><p class="muted">' + esc(T('noMovesSub')) + '</p><div class="row" style="margin-top:10px"><button class="btn" data-k="undo">↶ ' + esc(T('undo')) + '</button><button class="btn" data-k="again">🔁 ' + esc(T('sameDeal')) + '</button><button class="btn main" data-k="new">🂠 ' + esc(T('newDeal')) + '</button></div>', 'center');
@@ -949,7 +1262,7 @@ function autoFinish() {
   const S = G.S, g = GM();
   if (!G.finishing) { pushHist(); G.finishing = true; }
   let m = null;
-  const srcs = S.g === 'klondike' ? ['w', 't0', 't1', 't2', 't3', 't4', 't5', 't6'] : ['c0', 'c1', 'c2', 'c3', 't0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'];
+  const srcs = g.srcs(S).filter(p => p[0] !== 'f');
   let best = 99;
   for (const from of srcs) { const a = S.p[from], c = SOL.top(a); if (c == null) continue; for (let k = 0; k < 4; k++) if (g.canDrop(S, from, a.length - 1, 'f' + k) && SOL.rank(c) < best) { best = SOL.rank(c); m = { from, i: a.length - 1, to: 'f' + k }; } }
   if (!m) { G.finishing = false; return; }
@@ -999,7 +1312,7 @@ function showResult() {
   const S = G.S, st = (LS.get('stats', {})[G.k]) || blankStat();
   let h = '<div class="res"><img class="winArt" src="img/win.webp" alt=""><h3 style="text-align:center">' + esc(T('youWon')) + '</h3>' + (G.newBest ? '<p class="nb">🏆 ' + esc(T('newBest')) + '</p>' : '');
   h += '<table class="tbl"><tr><td>⏱ ' + esc(T('time')) + '</td><td>' + fmtT(G.el) + '</td></tr><tr><td>👆 ' + esc(T('movesL')) + '</td><td>' + num(S.moves) + '</td></tr>';
-  if (S.g !== 'freecell' && S.opt.scoring !== 'none') h += '<tr><td>⭐ ' + esc(T('scoreL')) + '</td><td>' + iso(NF(S.score + (G.bonus || 0))) + (G.bonus ? ' <small class="muted">(' + esc(T('timeBonus')) + ' ' + iso('+' + NF(G.bonus)) + ')</small>' : '') + '</td></tr>';
+  if (!['freecell', 'yukon', 'golf'].includes(S.g) && S.opt.scoring !== 'none') h += '<tr><td>⭐ ' + esc(T('scoreL')) + '</td><td>' + iso(NF(S.score + (G.bonus || 0))) + (G.bonus ? ' <small class="muted">(' + esc(T('timeBonus')) + ' ' + iso('+' + NF(G.bonus)) + ')</small>' : '') + '</td></tr>';
   if (S.g === 'klondike' && S.opt.scoring === 'vegas') h += '<tr><td>💰 ' + esc(T('vegasBank')) + '</td><td>' + num(ST.vegasBank) + '</td></tr>';
   h += '<tr><td>🔥 ' + esc(T('streak')) + '</td><td>' + num(st.streak) + '</td></tr><tr><td>📈 ' + esc(T('winRate')) + '</td><td>' + iso(Math.round(100 * st.won / Math.max(1, st.played)) + '%') + '</td></tr></table>';
   if (G.daily) h += '<p class="muted" style="text-align:center">📅 ' + esc(T('dailyDone')) + '</p>';
@@ -1047,36 +1360,61 @@ setInterval(() => {
    layout & rendering (absolute positions, so every card can glide to its new place)
    ===================================================================== */
 function layout(host) {
-  const S = G.S, g = S.g, cols = g === 'klondike' ? 7 : g === 'freecell' ? 8 : 10;
+  const S = G.S, g = S.g, right = ST.stockRight;
+  const cols = { freecell: 8, spider: 10, tripeaks: 10 }[g] || 7;
   const W = host.clientWidth - 12, H = host.clientHeight - 6;
   const land = W > H * 1.25;
   const gap = Math.max(3, Math.round(W * .012));
-  let w = Math.floor((W - (cols - 1) * gap) / cols);
-  if (land) w = Math.min(w, Math.floor((H - 16) / (g === 'freecell' ? 5.3 : g === 'spider' ? 5 : 4.7)));     // landscape: the height decides (keep the corners readable)
+  const sx = g === 'tripeaks' ? .82 : 1;                        // TriPeaks: neighbours overlap a little so the cards can be bigger
+  let w = g === 'tripeaks' ? Math.floor(W / (9 * sx + 1) - gap * .3) : Math.floor((W - (cols - 1) * gap) / cols);
+  if (land) w = Math.min(w, Math.floor((H - 16) / ({ freecell: 5.3, spider: 5, pyramid: 5.1, tripeaks: 3.9, golf: 4.6 }[g] || 4.7)));
   w = Math.max(26, Math.min(104, w));
   const h = Math.round(w * 1.4), x0 = Math.round((host.clientWidth - (cols * w + (cols - 1) * gap)) / 2), y0 = 6, y1 = y0 + h + Math.max(10, Math.round(w * .28));
-  const X = c => x0 + c * (w + gap), pos = {}, right = ST.stockRight;
-  if (g === 'klondike') {
-    pos.s = [X(right ? 6 : 0), y0]; pos.w = [X(right ? 5 : 1), y0];
+  const X = c => x0 + c * (w + gap), pos = {}, z = {};
+  let tabBottom = H - 2;
+  if (g === 'klondike' || g === 'yukon') {
+    if (g === 'klondike') { pos.s = [X(right ? 6 : 0), y0]; pos.w = [X(right ? 5 : 1), y0]; }
     for (let k = 0; k < 4; k++) pos['f' + k] = [X(right ? k : 3 + k), y0];
+    for (let i = 0; i < 7; i++) pos['t' + i] = [X(i), y1];
   } else if (g === 'freecell') {
     for (let k = 0; k < 4; k++) { pos['c' + k] = [X(k), y0]; pos['f' + k] = [X(4 + k), y0]; }
-  } else {
+    for (let i = 0; i < 8; i++) pos['t' + i] = [X(i), y1];
+  } else if (g === 'spider') {
     pos.s = [X(right ? 9 : 0), y0];
     for (let k = 0; k < 8; k++) pos['f' + k] = [X(right ? k : 2 + k), y0];
+    for (let i = 0; i < 10; i++) pos['t' + i] = [X(i), y1];
+  } else if (g === 'canfield') {
+    pos.s = [X(right ? 6 : 0), y0]; pos.w = [X(right ? 5 : 1), y0];
+    for (let k = 0; k < 4; k++) pos['f' + k] = [X(right ? k : 3 + k), y0];
+    pos.r = [X(right ? 0 : 6), y1];
+    for (let i = 0; i < 4; i++) pos['t' + i] = [X(right ? 3 + i : i), y1];
+  } else if (g === 'golf') {
+    for (let i = 0; i < 7; i++) pos['t' + i] = [X(i), y0];
+    const colH = h + Math.round(w * .4) * 4, yb = Math.min(H - h - 4, y0 + colH + Math.max(14, w * .4));
+    pos.s = [X(right ? 6 : 0), yb]; pos.w = [X(3), yb]; tabBottom = yb - 6;
+  } else if (g === 'pyramid') {
+    const dy = Math.round(h * .45), cx = host.clientWidth / 2;
+    for (let n = 0; n < 28; n++) { const r = SOL.PY_ROW(n), c = n - r * (r + 1) / 2; pos['p' + n] = [Math.round(cx - (r + 1) * (w + gap) / 2 + gap / 2 + c * (w + gap)), y0 + r * dy]; z['p' + n] = r + 2; }
+    const yb = Math.min(H - h - 4, y0 + 6 * dy + h + Math.max(16, w * .4));
+    pos.s = [X(right ? 6 : 0), yb]; pos.w = [X(right ? 5 : 1), yb]; pos.d = [X(right ? 0 : 6), yb];
+  } else if (g === 'tripeaks') {
+    const st = Math.round(w * sx + gap * .3), bx = Math.round((host.clientWidth - (9 * st + w)) / 2), dy = Math.round(h * .5), xs = [];
+    for (let n = 27; n >= 0; n--) { const r = n < 3 ? 0 : n < 9 ? 1 : n < 18 ? 2 : 3; let x; if (r === 3) x = bx + (n - 18) * st; else { const k = SOL.TP_KIDS[n]; x = (xs[k[0]] + xs[k[1]]) / 2; } xs[n] = x; pos['q' + n] = [Math.round(x), y0 + r * dy]; z['q' + n] = r + 2; }
+    const yb = Math.min(H - h - 4, y0 + 3 * dy + h + Math.max(18, w * .5));
+    pos.w = [Math.round(host.clientWidth / 2 - w / 2), yb]; pos.s = [right ? Math.round(host.clientWidth - w - 14) : 14, yb];
   }
-  for (let i = 0; i < cols; i++) pos['t' + i] = [X(i), y1];
   // vertical spacing per column: squeeze when a column would run off the table
-  const off = {}, avail = H - y1 - 2;
-  for (let i = 0; i < cols; i++) {
-    const a = S.p['t' + i]; let dd = Math.round(w * (g === 'spider' ? .14 : .17)), du = Math.round(w * (g === 'spider' ? .36 : .38));
+  const off = {};
+  for (const pile of Object.keys(pos)) {
+    if (pile[0] !== 't') continue;
+    const a = S.p[pile], avail = tabBottom - pos[pile][1]; let dd = Math.round(w * (g === 'spider' ? .14 : .17)), du = Math.round(w * (g === 'spider' ? .36 : g === 'golf' ? .4 : .38));
     const nd = a.filter(x => !SOL.up(x)).length, nu = a.length - nd;
     const need = () => nd * dd + Math.max(0, nu - 1) * du + h;
     while (need() > avail && du > w * .2) du--;
     while (need() > avail && dd > w * .07) dd--;
-    off['t' + i] = { dd, du };
+    off[pile] = { dd, du };
   }
-  return { w, h, gap, pos, off, cols };
+  return { w, h, gap, pos, off, cols, z };
 }
 function cardPos(L, pile, k, a) {
   const [x, y] = L.pos[pile];
@@ -1084,6 +1422,7 @@ function cardPos(L, pile, k, a) {
   if (pile === 'w' && G.S.opt.draw === 3) { const n = a.length, vis = Math.min(3, n), j = k - (n - vis); const dx = Math.round(L.w * .3) * (ST.stockRight ? -1 : 1); return [x + (j > 0 ? j * dx : 0), y]; }
   return [x, y];
 }
+function canRecycle(S) { const g = SOL.GAMES[S.g]; if (S.p.s.length || !S.p.w || !S.p.w.length) return false; if (S.g === 'canfield') return true; if (g.maxRecycles) return S.passes < g.maxRecycles(S); return false; }
 let DEALING = false;
 function renderGame(fresh) {
   if (!G || SCREEN !== 'game') return;
@@ -1095,11 +1434,13 @@ function renderGame(fresh) {
   for (const pile of g.names) {
     const a = S.p[pile], k0 = pile[0];
     // empty places
-    if (k0 === 's') { const can = S.g === 'klondike' ? (S.p.w.length && S.passes < g.maxRecycles(S)) : false; h += slot('s', a.length ? '' : (can ? '↻' : ''), 'data-stock="1"'); }
-    else if (k0 === 'f') h += slot(pile, S.g === 'spider' ? '' : 'A');
-    else if (k0 === 'c') h += slot(pile, '');
-    else if (k0 === 't') h += slot(pile, S.g === 'klondike' ? 'K' : '');
-    else if (k0 === 'w') h += '';
+    if (!L.pos[pile]) continue;
+    if (k0 === 's') h += slot('s', a.length ? '' : (canRecycle(S) ? '↻' : ''), 'data-stock="1"');
+    else if (k0 === 'f') h += slot(pile, S.g === 'spider' ? '' : S.g === 'canfield' ? (pile === 'f0' ? '' : RL[S.base]) : 'A');
+    else if (k0 === 'c' || k0 === 'r') h += slot(pile, '');
+    else if (k0 === 't') h += slot(pile, S.g === 'klondike' || S.g === 'yukon' ? 'K' : '');
+    else if (k0 === 'w' && (S.g === 'golf' || S.g === 'tripeaks')) h += slot(pile, '');
+    else if (k0 === 'd') h += a.length ? '' : slot('d', '✕');
     if (!a.length) continue;
     if (k0 === 's') {                                       // the stock: a small pile of backs (one per 10 cards / per Spider deal)
       const [x, y] = L.pos.s, n = S.g === 'spider' ? Math.ceil(a.length / 10) : Math.min(3, Math.ceil(a.length / 8));
@@ -1107,9 +1448,10 @@ function renderGame(fresh) {
       h += '<span class="cnt" style="left:' + (x + L.w - 24) + 'px;top:' + (y + L.h - 16) + 'px">' + a.length + '</span>';
       continue;
     }
-    const from = k0 === 'w' ? Math.max(0, a.length - (S.opt.draw === 3 ? 3 : 1)) : k0 === 'f' ? a.length - 1 : 0;
+    const from = k0 === 'w' ? Math.max(0, a.length - (S.opt.draw === 3 ? 3 : 1)) : (k0 === 'f' || k0 === 'd' || k0 === 'r') ? a.length - 1 : 0;
+    if ((k0 === 'r' || k0 === 'd') && a.length > 1) { const [x, y] = L.pos[pile]; h += '<span class="cnt" style="left:' + (x + L.w - 24) + 'px;top:' + (y + L.h - 16) + 'px">' + a.length + '</span>'; }
     for (let k = from; k < a.length; k++) {
-      const v = a[k], c = SOL.cid(v), [x, y] = cardPos(L, pile, k, a), z = k + 2;
+      const v = a[k], c = SOL.cid(v), [x, y] = cardPos(L, pile, k, a), z = L.z[pile] || k + 2;
       const pick = SOL.up(v) && g.pickable(S, pile, k);
       const cls = 'card' + (HINT && HINT.from === pile && k >= HINT.i ? ' hintc' : '') + (pick ? ' pk' : '');
       const at = 'data-c="' + c + '" data-p="' + pile + '" data-i="' + k + '" style="left:' + x + 'px;top:' + y + 'px;z-index:' + z + '"';
@@ -1143,8 +1485,8 @@ function dropEl(pile) { const a = G.S.p[pile]; if (a && a.length && pile !== 's'
 function renderTop() {
   const S = G.S;
   $('#gTitle').textContent = gameTitle(S.g, S.opt) + (G.daily ? ' · 📅' : '');
-  const sc = S.g !== 'freecell' && S.opt.scoring !== 'none';
-  $('#gStats').innerHTML = (ST.timer ? '<span>⏱ <b id="gTime">' + fmtT(G.el) + '</b></span>' : '') + '<span>👆 <b>' + num(S.moves) + '</b></span>' + (sc ? '<span>⭐ <b>' + num(S.score) + '</b></span>' : '') + (S.g === 'klondike' && S.opt.scoring === 'vegas' ? '<span>💰 <b>' + num(ST.vegasBank) + '</b></span>' : '');
+  const sc = !['freecell', 'yukon'].includes(S.g) && S.opt.scoring !== 'none';
+  $('#gStats').innerHTML = (ST.timer ? '<span>⏱ <b id="gTime">' + fmtT(G.el) + '</b></span>' : '') + '<span>👆 <b>' + num(S.moves) + '</b></span>' + (sc ? '<span>' + (S.g === 'golf' ? '🃏' : '⭐') + ' <b>' + num(S.score) + '</b></span>' : '') + (S.g === 'klondike' && S.opt.scoring === 'vegas' ? '<span>💰 <b>' + num(ST.vegasBank) + '</b></span>' : '');
 }
 function renderBar() {
   const S = G.S, fin = !S.won && GM().canFinish(S);
@@ -1247,7 +1589,9 @@ function renderHome() {
   $('#verLbl').textContent = 'v' + APP_VERSION;
   $('#heroFan').innerHTML = [0, 13, 26, 39].map((c, i) => cardHTML(c, '', 'style="transform:translateX(-50%) rotate(' + (-24 + i * 16) + 'deg)"')).join('');
   const mini = (cs, dx, dy) => cs.map((c, i) => cardHTML(c, '', 'style="left:' + (6 + i * dx) + 'px;top:' + (2 + i * dy) + 'px"')).join('');
-  $('#giK').innerHTML = mini([25, 11, 36], 0, 9); $('#giF').innerHTML = mini([13, 9, 34], 10, 4); $('#giS').innerHTML = mini([12, 11, 10], 6, 6);
+  const ICN = { klondike: [[25, 11, 36], 0, 9], freecell: [[13, 9, 34], 10, 4], spider: [[12, 11, 10], 6, 6], pyramid: [[5, 20, 44], 9, 0], tripeaks: [[30, 4, 45], 8, -3], golf: [[2, 15, 41], 9, 3], canfield: [[19, 32, 6], 3, 3], yukon: [[51, 23, 49], 2, 9] };
+  if (!$('#games').children.length) $('#games').innerHTML = GAME_KEYS.map(g => '<button class="game" data-g="' + g + '"><span class="gi">' + mini(...ICN[g]) + '</span><span class="gt"><b>' + esc(GNAME(g)) + '</b><span class="gs"></span></span></button>').join('');
+  $$('#games [data-g] b').forEach(b => b.textContent = GNAME(b.closest('[data-g]').dataset.g));
   const c = $('#mCont');
   if (G && G.S && !G.S.won && G.started) { c.classList.remove('hide'); $('#mContSub').textContent = gameTitle(G.S.g, G.S.opt) + ' · ' + T('movesN', NF(G.S.moves)); }
   else c.classList.add('hide');
@@ -1264,14 +1608,16 @@ function renderHome() {
 
 /* ---------- new deal: the options of each game ---------- */
 function setupBox(g) {
-  let draw = ST.kDraw, suits = ST.sSuits, win = ST.kWin, score = ST.kScore;
+  let draw = g === 'canfield' ? (ST.cDraw || 3) : ST.kDraw, suits = ST.sSuits, win = ST.kWin, score = ST.kScore;
   const o = overlay('<div id="suB"></div>');
   function draw_() {
-    let h = '<h3>' + GICON[g] + ' ' + esc(T('g' + g[0].toUpperCase() + g.slice(1))) + '</h3><p class="muted">' + esc(T('g' + g[0].toUpperCase() + g.slice(1) + 'Long')) + '</p>';
+    let h = '<h3>' + GICON[g] + ' ' + esc(GNAME(g)) + '</h3><p class="muted">' + esc(T('g' + g[0].toUpperCase() + g.slice(1) + 'Long')) + '</p>';
     if (g === 'klondike') {
       h += '<label class="f">' + esc(T('drawLbl')) + '</label><div class="seg" data-sk="draw"><button data-v="1" class="' + (draw === 1 ? 'on' : '') + '">' + esc(T('draw1')) + '</button><button data-v="3" class="' + (draw === 3 ? 'on' : '') + '">' + esc(T('draw3')) + '</button></div><p class="sub">' + esc(T(draw === 3 ? 'draw3Sub' : 'draw1Sub')) + '</p>';
       h += '<label class="f">' + esc(T('scoringLbl')) + '</label><div class="seg" data-sk="score">' + [['std', 'scStd'], ['vegas', 'scVegas'], ['none', 'scNone']].map(([v, l]) => '<button data-v="' + v + '" class="' + (score === v ? 'on' : '') + '">' + esc(T(l)) + '</button>').join('') + '</div><p class="sub">' + esc(T(score === 'vegas' ? 'scVegasSub' : score === 'none' ? 'scNoneSub' : 'scStdSub')) + '</p>';
       h += '<div class="sw ' + (win ? 'on' : '') + '" data-sw="win" role="switch" aria-checked="' + win + '" tabindex="0" style="margin-top:8px"><div class="t">' + esc(T('winnable')) + '<small>' + esc(T('winnableSub')) + '</small></div><div class="tg"></div></div>';
+    } else if (g === 'canfield') {
+      h += '<label class="f">' + esc(T('drawLbl')) + '</label><div class="seg" data-sk="draw"><button data-v="1" class="' + (draw === 1 ? 'on' : '') + '">' + esc(T('draw1')) + '</button><button data-v="3" class="' + (draw === 3 ? 'on' : '') + '">' + esc(T('draw3')) + '</button></div>';
     } else if (g === 'spider') {
       h += '<label class="f">' + esc(T('suitsLbl')) + '</label><div class="seg" data-sk="suits">' + [1, 2, 4].map(n => '<button data-v="' + n + '" class="' + (suits === n ? 'on' : '') + '">' + esc(T('suitsN', n)) + '</button>').join('') + '</div><p class="sub">' + esc(T('suits' + suits + 'Sub')) + '</p>';
     }
@@ -1287,8 +1633,8 @@ function setupBox(g) {
     if (sk) { const k = sk.dataset.sk; if (k === 'draw') draw = +b.dataset.v; else if (k === 'suits') suits = +b.dataset.v; else if (k === 'score') score = b.dataset.v; draw_(); return; }
     if (b.hasAttribute('data-c')) { closeOv(o); return; }
     if (b.hasAttribute('data-go')) {
-      Object.assign(ST, { kDraw: draw, sSuits: suits, kWin: win, kScore: score }); saveST();
-      const go = () => { closeOv(o); lostStreak(); newDeal(g, g === 'klondike' ? { draw } : g === 'spider' ? { suits } : {}); };
+      if (g === 'canfield') ST.cDraw = draw; else Object.assign(ST, { kDraw: draw, sSuits: suits, kWin: win, kScore: score }); saveST();
+      const go = () => { closeOv(o); lostStreak(); newDeal(g, g === 'klondike' || g === 'canfield' ? { draw } : g === 'spider' ? { suits } : {}); };
       if (G && G.started && !G.S.won) confirmBox(T('newDealQ'), T('newDeal'), go); else go();
     }
   });
@@ -1329,10 +1675,10 @@ function renderSettings() {
 function renderStats() {
   const S = LS.get('stats', {}); let h = '';
   const pct = (a, n) => n ? Math.round(a / n * 100) + '%' : '–';
-  const KEYS = [['klondike1', T('gKlondike') + ' · ' + T('draw1')], ['klondike3', T('gKlondike') + ' · ' + T('draw3')], ['freecell', T('gFreecell')], ['spider1', T('gSpider') + ' · ' + T('suitsN', 1)], ['spider2', T('gSpider') + ' · ' + T('suitsN', 2)], ['spider4', T('gSpider') + ' · ' + T('suitsN', 4)]];
+  const KEYS = [['klondike1', T('gKlondike') + ' · ' + T('draw1')], ['klondike3', T('gKlondike') + ' · ' + T('draw3')], ['freecell', T('gFreecell')], ['spider1', T('gSpider') + ' · ' + T('suitsN', 1)], ['spider2', T('gSpider') + ' · ' + T('suitsN', 2)], ['spider4', T('gSpider') + ' · ' + T('suitsN', 4)], ['pyramid', T('gPyramid')], ['tripeaks', T('gTripeaks')], ['golf', T('gGolf')], ['canfield3', T('gCanfield') + ' · ' + T('draw3')], ['canfield1', T('gCanfield') + ' · ' + T('draw1')], ['yukon', T('gYukon')]];
   for (const [k, lab] of KEYS) {
     const b = S[k]; if (!b || !b.played) continue;
-    h += '<div class="card"><h3>' + GICON[k.replace(/\d/, '')] + ' ' + esc(lab) + '</h3><table class="tbl">' +
+    h += '<div class="card"><h3>' + GICON[k.replace(/\d/g, '')] + ' ' + esc(lab) + '</h3><table class="tbl">' +
       '<tr><td>' + esc(T('gamesWon')) + '</td><td>' + iso(NF(b.won) + ' / ' + NF(b.played)) + '</td><td>' + pct(b.won, b.played) + '</td></tr>' +
       (b.best ? '<tr><td>' + esc(T('bestT')) + '</td><td>' + fmtT(b.best * 1000) + '</td><td></td></tr>' : '') +
       (b.won ? '<tr><td>' + esc(T('avgT')) + '</td><td>' + fmtT(b.time / b.won * 1000) + '</td><td></td></tr>' : '') +
@@ -1349,9 +1695,10 @@ function renderStats() {
 /* ---------- rules ---------- */
 function renderRules(g) {
   g = g || 'klondike';
-  const tabs = '<div class="seg gsw" id="rTabs">' + GAME_KEYS.map(k => '<button data-g="' + k + '" class="' + (g === k ? 'on' : '') + '">' + GICON[k] + ' ' + esc(T('g' + k[0].toUpperCase() + k.slice(1))) + '</button>').join('') + '</div>';
+  const tabs = '<div class="rtabs" id="rTabs">' + GAME_KEYS.map(k => '<button data-g="' + k + '" class="' + (g === k ? 'on' : '') + '">' + GICON[k] + ' ' + esc(GNAME(k)) + '</button>').join('') + '</div>';
   const ex = cs => '<div class="ex">' + cs.map(c => cardHTML(c)).join('') + '</div>';
-  const body = g === 'klondike' ? T('rulesK1') + ex([12, 37, 10, 22]) + T('rulesK2') : g === 'freecell' ? T('rulesF1') + ex([9, 34, 7]) + T('rulesF2') : T('rulesS1') + ex([12, 11, 10, 9]) + T('rulesS2');
+  const body = g === 'klondike' ? T('rulesK1') + ex([12, 37, 10, 22]) + T('rulesK2') : g === 'freecell' ? T('rulesF1') + ex([9, 34, 7]) + T('rulesF2') : g === 'spider' ? T('rulesS1') + ex([12, 11, 10, 9]) + T('rulesS2') :
+    g === 'pyramid' ? T('rulesY') + ex([5, 20, 12]) : g === 'tripeaks' ? T('rulesTP') + ex([7, 21, 9]) : g === 'golf' ? T('rulesGO') + ex([4, 18, 30]) : g === 'canfield' ? T('rulesCF') + ex([12, 26, 50]) : T('rulesYU') + ex([25, 10, 47]);
   $('#rulesBody').innerHTML = tabs + body + T('rulesCommon');
   $$('#rTabs [data-g]').forEach(b => b.onclick = () => renderRules(b.dataset.g));
 }
@@ -1398,7 +1745,6 @@ function init() {
   $('#hRules').onclick = () => { renderRules(); RULES_BACK = 'home'; show('rules'); };
   $('#hStats').onclick = () => { renderStats(); show('stats'); };
   $('#hSettings').onclick = () => { renderSettings(); SET_BACK = 'home'; show('settings'); };
-  $$('#games [data-g]').forEach(b => b.onclick = () => setupBox(b.dataset.g));
   $('#mDaily').onclick = () => {
     const D = LS.get('daily', {});
     if (G && G.daily === today() && !G.S.won) { show('game'); return; }
@@ -1409,6 +1755,7 @@ function init() {
   $('#mCont').onclick = () => { if (G) show('game'); };
   if (G && (!G.S || !SOL.GAMES[G.S.g])) { G = null; saveGame(); }
   renderHome();
+  $$('#games [data-g]').forEach(b => b.onclick = () => setupBox(b.dataset.g));
   tour(false);
   if (location.protocol === 'file:') toast(T('fileWarn'), 6000);
   const q = new URLSearchParams(location.search);
