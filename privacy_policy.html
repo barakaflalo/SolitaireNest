@@ -26,8 +26,13 @@ a{color:var(--acc)}
 <div class="card">
 <h2>בקצרה</h2>
 <p>SolitaireNest הוא משחק סוליטר. אין שרת, אין חשבונות, אין פרסומות ואין מעקב. ההגדרות, המשחק השמור, הסטטיסטיקה והחלוקות היומיות נשמרים רק בטלפון שלכם (localStorage).</p>
-<h2>מה יוצא מהטלפון</h2>
-<p>שום מידע אישי. האפליקציה טוענת גופנים מ-Google Fonts. החלוקה היומית מחושבת בטלפון עצמו לפי התאריך.</p>
+<h2>מה יוצא מהטלפון, ומתי</h2>
+<p>במשחק לבד — שום מידע אישי. האפליקציה טוענת גופנים מ-Google Fonts, והחלוקה היומית מחושבת בטלפון עצמו.</p>
+<ul>
+<li><b>מרוץ עם חבר בלבד:</b> כדי ששני טלפונים ימצאו זה את זה, האפליקציה פונה לשרת הציבורי והחינמי של PeerJS (0.peerjs.com) ולשרתי STUN של Google ו-Cloudflare. הם רואים כתובת רשת ומזהה חדר אקראי — לא שם, לא קלפים ולא קול. מכאן הכל עובר <b>ישירות בין הטלפונים</b> (WebRTC): השם שבחרתם, ההתקדמות במשחק, האימוג'י והקול.</li>
+<li><b>קול:</b> המיקרופון נפתח רק כשלוחצים על "החזק ודבר", "מיקרופון פתוח" או הקלטה, ורק אחרי אישור הרשאה. הקול עובר ישירות לטלפון של החבר ולא נשמר אצלנו.</li>
+<li><b>ספרייה:</b> ספריית PeerJS נטענת מ-CDN ציבורי (jsDelivr / unpkg / cdnjs) רק כשנכנסים למרוץ.</li>
+</ul>
 <h2>אין כסף ואין פרסים</h2>
 <p>המשחק להנאה בלבד. ניקוד "וגאס" הוא כסף וירטואלי — אין קניות, אין הימורים ואין פרסים.</p>
 <h2>שליטה מלאה</h2>
@@ -37,7 +42,7 @@ a{color:var(--acc)}
 </div>
 <div class="card en">
 <h2>In short (English)</h2>
-<p>SolitaireNest is a solitaire game. No server, no accounts, no ads, no tracking. Settings, the saved game, stats and daily deals stay only on your phone (localStorage). Fonts load from Google Fonts. Vegas scoring is virtual money only — no purchases, no gambling, no prizes. Contact: appnest55@gmail.com.</p>
+<p>SolitaireNest is a solitaire game. No server, no accounts, no ads, no tracking. Settings, the saved game, stats and daily deals stay only on your phone (localStorage). Fonts load from Google Fonts. For a race with a friend only: the public PeerJS server and Google/Cloudflare STUN servers introduce the two phones (they see a network address and a random room id); after that names, progress, emoji and voice go directly phone to phone (WebRTC). The microphone opens only when you press a voice button, and voice is never stored. Vegas scoring is virtual money only — no purchases, no gambling, no prizes. Contact: appnest55@gmail.com.</p>
 </div>
 </div></body>
 </html>

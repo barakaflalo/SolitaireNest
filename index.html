@@ -231,6 +231,39 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .tn-fast *{animation:none!important;transition:none!important}
 
+
+/* ---- 1.2 race ---- */
+.net{font-size:12px;padding:3px 8px;border-radius:10px;background:#c0392b;color:#fff;white-space:nowrap}
+.racebar{display:grid;gap:3px;padding:5px 10px;background:rgba(0,0,0,.2);flex:none;font-size:12.5px}
+.rr{display:grid;grid-template-columns:minmax(60px,30%) 1fr auto;align-items:center;gap:8px}
+.rr b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#46d07a;margin-inline-end:4px}.rr .dot.off{background:#888}
+.pb{height:8px;border-radius:5px;background:rgba(255,255,255,.15);overflow:hidden;direction:ltr}
+.pb i{display:block;height:100%;background:var(--acc);border-radius:5px;transition:width .3s}
+.rr.opp .pb i{background:#e0566a}
+.voice{display:flex;gap:8px;padding:0 10px 8px;flex:none;background:rgba(0,0,0,.22)}
+.voice .btn{flex:1;min-height:44px;color:var(--feltInk);border-color:var(--feltLine);font-size:15px;padding:4px 6px}
+.voice .btn.on{background:#2e8b57;border-color:#2e8b57;color:#fff}
+.voice .btn.rec.on{background:#c0392b;border-color:#c0392b}
+.ptt{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.bub{position:fixed;z-index:85;max-width:70vw;background:#fff;color:#111;padding:8px 12px;border-radius:16px;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.35);animation:bubIn .25s ease}
+.bub.emo{background:transparent;box-shadow:none;font-size:46px;padding:0;animation:pop 1.2s ease}
+@keyframes bubIn{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.3)}30%{transform:scale(1.25)}60%{transform:scale(1)}100%{transform:translateY(-14px)}}
+.emogrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.emogrid button{min-height:52px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:24px;cursor:pointer}
+.phr{display:grid;gap:8px;margin-top:10px}
+.phr button{min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:15px}
+.vmsg{display:flex;align-items:center;gap:8px}
+.code{font-family:var(--disp);font-size:44px;letter-spacing:.12em;text-align:center;direction:ltr}
+.roster{display:grid;gap:6px;margin:10px 0}
+.roster div{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--panel2)}
+.rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel2);cursor:pointer;font-size:12px}
+.rgrid button img{width:40px;height:40px;object-fit:contain}
+.rgrid button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 22%,var(--panel2))}
+.rbanner{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);z-index:46;pointer-events:none;padding:14px 22px;border-radius:18px;background:rgba(8,8,8,.88);border:2px solid var(--acc);color:var(--acc2);font-family:var(--disp);font-size:clamp(24px,8vw,40px);white-space:nowrap;animation:fadeIn .2s ease}
+.mode{display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 16px;border-radius:16px;border:1.5px solid var(--acc);background:transparent;cursor:pointer;text-align:start;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -249,6 +282,7 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
     </div>
     <button class="daily" id="mDaily"><img class="ic" src="img/daily.webp" alt=""><span><b data-t="daily"></b><span id="dSub"></span></span><span class="stk" id="dStreak"></span></button>
     <button class="mode main hide" id="mCont" style="width:100%;margin-bottom:12px"><span class="ic">▶</span><span><b data-t="continue"></b><span id="mContSub"></span></span></button>
+    <button class="mode" id="mRace" style="width:100%;margin-bottom:12px"><span class="ic">🏁</span><span><b data-t="raceBtn"></b><span id="mRaceSub" data-t="raceBtnSub"></span></span></button>
     <div class="games" id="games"></div>
     <p class="soon" data-t="soon"></p>
     <div class="minor">
@@ -261,15 +295,26 @@ input.in,select.in{width:100%;min-height:48px;border-radius:12px;border:1.5px so
   </div>
 </section>
 
+<!-- ONLINE LOBBY -->
+<section class="scr" id="lobby"><div class="bar"><button class="back" data-home></button><h2 data-t="raceT"></h2></div><div class="wrap" id="lobbyBody"></div></section>
+
 <!-- GAME -->
 <section class="scr" id="game">
   <div class="gtop">
     <button class="back" id="gBack"></button>
     <div class="ttl"><b id="gTitle"></b><div class="gstats" id="gStats"></div></div>
+    <span class="net hide" id="gNet"></span>
     <button class="ibtn" id="gMenu" aria-label="menu">⋯</button>
   </div>
+  <div class="racebar hide" id="raceBar"></div>
   <div class="tarea" id="tarea"></div>
   <div class="abar" id="abar"></div>
+  <div class="voice hide" id="voice">
+    <button class="btn ptt" id="vPtt"></button>
+    <button class="btn" id="vOpen">🔊</button>
+    <button class="btn rec" id="vRec">⏺</button>
+    <button class="btn" id="vEmo">😀</button>
+  </div>
 </section>
 
 <!-- SETTINGS / STATS / RULES / ABOUT -->
@@ -737,11 +782,289 @@ const SOL = (() => {
 /* Klondike deals the solver (tools/ksolve.js) won from start to finish — draw 1 / draw 3, unlimited passes */
 const KWIN = { 1: [4,8,12,16,18,19,20,21,22,23,29,31,33,36,37,39,42,47,50,53,54,56,57,58,59,60,61,62,63,64,65,66,68,69,70,73,77,80,82,85,86,88,89,94,98,101,102,103,104,107,108,110,111,113,114,115,117,118,120,123,124,125,126,127,130,132,135,137,138,139,142,145,149,150,151,155,156,157,159,161,162,165,166,168,169,170,171,172,173,174,175,176,179,181,182,183,184,187,189,191,193,195,196,198,199,200,202,203,205,212,213,214,215,216,217,218,219,221,224,225,226,227,228,229,230,231,232,233,235,239,240,241,242,243,247,248,249,250,251,252,253,254,256,257,258,259,261,262,263,264,265,266,267,271,273,275,277,279,282,284,288,289,290,291,293,295,297,302,303,305,307,308,309,310,311,312,316,317,318,319,320,321,322,326,327,328,331,332,334,335,336,338,339,340,341,346,348,349,350,351,352,353,354,356,359,360,362,364,366,367,368,370,372,374,375,377,378,379,385,388,389,390,391,394,395,396,397,399,400,401,402,405,407,409,410,411,412,414,416,421,424,425,428,429,430,431,432,434,436,439,443,444,445,446,447,449,450,452,453,454,455,457,458,460,461,462,463,466,467,469,471,472,473,474,476,477,479,482,485,486,488,489,490,491,492,493,494,496,497,499,501,502,503,504,505,507,508,509,510,511,512,513,514,516,517,518,519,520,522,523,524,525,528,529,530,532,533,534,535,540,545,546,547,548,549,550,551,552,554,556,557,558,561,562,564,566,567,571,572,573,577,580,581,582,583,585,587,588,589,590,591,592,593,595,597,598,603,605,606,607,608,610,611,615,616,617,620,621,623,624,626,627,628,629,630,631,632,633,636,637,638,640,642,643,645,648,652,654,655,656,657,659,663,664,665,666,667,668,669,671,673,674,676,677,678,679,681,682,683,684,686,687,689,690,691,693,694,695,697,699,700,701,702,703,704,705,706,707,708,713,715,717,719,721,726,730,731,732,733,735,736,737,739,740,741,742,743,744,745,746,751,752,758,759,760,761,764,767,768,770,771,772,773,774,775,776,777,778,781,783,786,787,794,795,796,798,800,801,802,804,805,806,807,809,810,811,813,814,815,816,817,819,822,823,824,825,826,827,828,830,831,832,835,836,838,841,842,844,849,850,851,854,855,857,859,861,863,864,865,866,867,868,869,872,873,876,878,879,881,882,883,884,885,886,887,891,894,895,896,897,898,899,901,905,906,908,909,910,911,912,913,914,918,922,923,926,928,929,930,931,933,934,935,937,938,940,941,942,943,944,945,946,947,948,949,951,953,957,958,959,960,961,963,964,966,968,969,970,971,972,973,974,975,976,977,979,981,983,984,987,989,990,992,993,994,995,996,1001,1004,1005,1006,1007,1008,1010,1012,1013,1015,1019,1022,1027,1028,1029,1031,1032,1034,1035,1037,1038,1039,1040,1042,1045,1047,1049,1051,1052,1057,1058,1059,1060,1062,1063,1065,1068,1071,1072,1073,1074,1075,1076,1077,1079,1080,1082,1083,1084,1085,1086,1087,1088,1091,1093,1094,1095,1096,1097,1098,1099,1101,1103,1105,1106,1108,1112,1114,1115,1117,1118,1119,1120,1121,1123,1124,1126,1127,1128,1129,1130,1131,1133,1134,1135,1136,1137,1138,1142,1145,1146,1147,1148,1152,1155,1156,1157,1158,1161,1164,1165,1166,1168,1171,1173,1175,1178,1179,1182,1183,1184,1186,1188,1189,1193,1194,1195,1197,1199,1203,1204,1205,1207,1208,1210,1211,1212,1214,1215,1217,1218,1220,1221,1223,1226,1228,1229,1230,1231,1233,1235,1237,1240,1242,1243,1244,1245,1246,1249,1251,1252,1254,1255,1256,1257,1258,1259,1260,1262,1263,1265,1266,1267,1268,1270,1273,1274,1275,1276,1278,1280,1282,1283,1284,1285,1286,1287,1289,1290,1294,1295,1297,1298,1299,1300,1302,1303,1306,1307,1311,1312,1313,1314], 3: [2,11,16,18,19,20,21,22,23,24,27,28,29,31,32,36,39,40,42,47,50,54,56,58,59,60,62,63,64,65,66,69,73,77,82,85,86,87,88,89,90,92,94,98,99,101,102,108,109,110,111,113,114,116,117,121,123,125,126,130,132,135,136,137,138,142,143,145,147,149,157,159,160,162,164,165,166,169,170,171,172,174,178,179,180,181,182,183,184,187,191,193,194,195,196,197,200,202,205,208,213,215,216,217,218,219,220,221,224,227,229,230,231,232,235,241,242,243,247,248,250,251,252,255,257,258,262,263,264,265,266,267,268,271,273,275,276,277,278,282,284,288,289,290,293,295,301,302,303,307,309,310,312,313,316,317,318,319,326,327,331,332,334,335,339,340,341,344,345,347,349,350,352,354,356,357,360,361,362,366,367,368,370,371,372,374,375,376,377,378,383,387,388,391,396,397,399,400,401,402,405,407,409,410,412,414,416,418,421,422,424,428,429,431,432,434,435,439,443,444,445,447,449,450,451,452,453,454,455,457,458,460,461,463,466,467,468,469,470,472,473,474,477,479,482,485,490,493,494,499,500,501,502,503,504,505,506,507,508,509,511,512,513,514,517,520,522,523,524,525,526,528,532,533,534,540,541,545,546,547,548,549,551,552,554,555,556,557,559,561,562,564,565,567,570,571,573,576,577,579,580,581,583,585,586,587,588,589,591,592,593,595,596,597,598,601,603,605,606,607,608,610,611,615,616,617,622,623,626,627,628,629,630,631,633,634,636,637,640,643,645,648,650,651,654,656,659,661,662,663,666,667,668,669,670,671,673,674,676,677,678,681,682,683,684,686,689,690,691,693,694,695,697,699,701,702,703,704,707,708,712,717,721,723,724,726,729,732,733,734,735,736,737,740,741,742,743,744,745,751] };
 
+/* ---- nestlink.js ---- */
+/* =====================================================================
+   NestLink 1.1 — AppNest online multiplayer module (WebRTC via PeerJS)
+   One file, drop into any AppNest game. No server of our own:
+   - a public PeerJS server only introduces the phones; game data, voice
+     and voice messages then travel directly phone-to-phone.
+   - star layout: the host is seat 0 and relays messages between guests,
+     so 2–6 players work; voice is a direct mesh (good up to ~4–5).
+   - every game message is sequenced and re-sent after a reconnect.
+   The game owns the session object (persist it with the game state) and
+   receives events through callbacks. See NESTLINK.md for the API.
+   1.1: sendTo(seat, d) — a private message to one seat only (card games:
+        the host deals each player only their own cards). Compatible with 1.0.
+        Heartbeat: a phone that vanished (app closed, no signal) is marked offline
+        within ~10 s instead of looking connected forever.
+        After a reconnect, if the other side already got more messages than we
+        remember sending (we restored an older saved session), numbering continues
+        after theirs instead of being silently ignored.
+   ===================================================================== */
+const NestLink = (() => {
+  const CDNS = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js'];
+  const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+  const AB = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const genCode = (n = 5) => Array.from({ length: n }, () => AB[Math.floor(Math.random() * AB.length)]).join('');
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  function loadScript(u) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = u; s.onload = res; s.onerror = rej; document.head.appendChild(s); setTimeout(rej, 12000); }); }
+  async function loadPeer() { if (window.Peer) return true; for (const u of CDNS) { try { await loadScript(u); if (window.Peer) return true; } catch (e) {} } return false; }
+  const b64 = buf => { let s = '', a = new Uint8Array(buf); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64 = s => { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+
+  function create(opt) {
+    const L = { status: 'off', lastErr: null, peer: null, conns: {}, retry: null, chunks: {}, calls: {}, audio: {}, mic: null, talking: false, openMic: false, rec: null, seen: {}, hb: {}, hbT: null };
+    let S = null;                                         // the session — owned and persisted by the game
+    const ev = (k, ...a) => { try { opt[k] && opt[k](...a); } catch (e) { console.error(e); } };
+    const persist = () => ev('persist', S);
+    const roomId = c => (opt.app || 'nest') + '-v1-' + c.toLowerCase();
+    const max = () => opt.maxPlayers || 2;
+    const isHost = () => S && S.role === 'host';
+    function peerOpts() {
+      const q = new URLSearchParams(location.search), o = { debug: 0, config: { iceServers: opt.iceServers || ICE } };
+      if (q.get('peerhost')) { o.host = q.get('peerhost'); o.port = +(q.get('peerport') || 9000); o.path = '/'; o.secure = false; }   // test servers only
+      return o;
+    }
+    function setStatus(st, err) { L.status = st; if (err !== undefined) L.lastErr = err; ev('onStatus', st, L.lastErr); }
+    const link = seat => S.links[seat] || (S.links[seat] = { seq: 0, lastIn: 0, out: [] });
+    const rosterEntry = seat => S.roster.find(p => p.seat === seat);
+    function rawTo(seat, m) { const c = L.conns[seat]; try { if (c && c.open) c.send(m); } catch (e) {} }
+    function rawAll(m, except) { for (const s in L.conns) if (+s !== except) rawTo(+s, m); }
+
+    /* ---------- starting ---------- */
+    async function start(session) {
+      close(true); S = session; persist();
+      L.hbT = setInterval(beat, 3000);                   // after close(), which clears it
+      setStatus('connecting');
+      if (!(await loadPeer())) { setStatus('error', 'load'); return false; }
+      const peer = L.peer = new Peer(isHost() ? roomId(S.code) : undefined, peerOpts());
+      peer.on('open', id => {
+        S.pid = id; if (isHost()) { const me = rosterEntry(0); if (me) { me.pid = id; me.online = true; } }
+        persist(); setStatus(isHost() ? 'waiting' : 'connecting'); if (!isHost()) connectHost();
+      });
+      peer.on('connection', c => { if (isHost()) attach(c, null); });
+      peer.on('call', onCall);
+      peer.on('disconnected', () => setTimeout(() => { try { if (L.peer === peer && !peer.destroyed) peer.reconnect(); } catch (e) {} }, 1500));
+      peer.on('error', e => {
+        const t = e && e.type;
+        if (t === 'unavailable-id') {                     // room id still held (e.g. after reload) — new code while nobody joined, else retry
+          if (S.roster.length < 2) { S.code = genCode(); persist(); ev('onCode', S.code); }
+          setTimeout(() => start(S), S.roster.length < 2 ? 300 : 4000); return;
+        }
+        if (t === 'peer-unavailable') { setStatus('notfound', 'nf'); scheduleRetry(); return; }
+        if (/network|server-error|socket/.test(t || '')) setStatus('error', 'net');
+      });
+      return true;
+    }
+    function host(code) {
+      return start({ role: 'host', code: code || genCode(), seat: 0, cid: uid(), roster: [{ seat: 0, name: opt.name ? opt.name() : '', online: true, cid: null, voice: false }], links: {} });
+    }
+    function join(code) { return start({ role: 'guest', code: code.toUpperCase(), seat: null, cid: uid(), roster: [], links: {} }); }
+    function resume(session) { return start(session); }
+    function scheduleRetry() { clearTimeout(L.retry); if (S && !isHost() && !(L.conns[0] && L.conns[0].open)) L.retry = setTimeout(connectHost, 3000); }
+    function connectHost() { if (!L.peer || L.peer.destroyed || (L.conns[0] && L.conns[0].open)) return; attach(L.peer.connect(roomId(S.code), { reliable: true, serialization: 'json' }), 0); scheduleRetry(); }
+
+    /* ---------- connections ---------- */
+    function attach(c, seat) {
+      let mySeat = seat;                                  // the seat at the other end of this connection
+      const onOpen = () => {
+        if (!isHost()) { L.conns[0] = c; rawTo(0, { t: 'hi', cid: S.cid, name: opt.name ? opt.name() : '', have: link(0).lastIn, v: opt.version, hb: 1 }); }
+      };
+      if (c.open) onOpen(); else c.on('open', onOpen);
+      c.on('data', m => {
+        if (!m || !m.t) return;
+        const key = isHost() ? mySeat : 0;                // 1.1 heartbeat: remember when we last heard from them
+        if (key != null) L.seen[key] = Date.now();
+        if (m.t === 'ping') { if (key != null) L.hb[key] = 1; return; }
+        if (isHost() && m.t === 'hi') {                   // a guest introduces itself → give it a seat (same seat when it comes back)
+          let p = S.roster.find(x => x.cid === m.cid);
+          if (!p) {
+            if (S.roster.length >= max()) { try { c.send({ t: 'full' }); c.close(); } catch (e) {} return; }
+            let s = 1; while (S.roster.some(x => x.seat === s)) s++;
+            p = { seat: s, cid: m.cid, name: '', online: true, voice: false }; S.roster.push(p); S.roster.sort((a, b) => a.seat - b.seat);
+            ev('onJoin', s);
+          }
+          mySeat = p.seat; p.name = (m.name || '').slice(0, 20); p.online = true; p.pid = c.peer;
+          if ((m.have || 0) > link(mySeat).seq) link(mySeat).seq = m.have;   // 1.1: we restored an older session — keep numbering after what they already got
+          if (L.conns[mySeat] && L.conns[mySeat] !== c) { try { L.conns[mySeat].close(); } catch (e) {} }
+          L.conns[mySeat] = c; L.seen[mySeat] = Date.now(); L.hb[mySeat] = m.hb ? 1 : 0;   // 1.1 phones announce the heartbeat
+          rawTo(mySeat, { t: 'hi', seat: mySeat, have: link(mySeat).lastIn, roster: S.roster, v: opt.version, hb: 1 });
+          link(mySeat).out.filter(x => x.seq > (m.have || 0)).forEach(x => rawTo(mySeat, x));
+          if (m.v && opt.version && m.v.split('.')[0] !== opt.version.split('.')[0]) ev('onVersion', m.v);
+          persist(); broadcastRoster(); setStatus('open'); callEveryone();
+          return;
+        }
+        if (!isHost() && m.t === 'hi') {
+          S.seat = m.seat; S.roster = m.roster || []; L.seen[0] = Date.now(); L.hb[0] = m.hb ? 1 : 0;
+          if ((m.have || 0) > link(0).seq) link(0).seq = m.have;            // 1.1: same protection on the guest side
+          persist();
+          link(0).out.filter(x => x.seq > (m.have || 0)).forEach(x => rawTo(0, x));
+          if (m.v && opt.version && m.v.split('.')[0] !== opt.version.split('.')[0]) ev('onVersion', m.v);
+          clearTimeout(L.retry); setStatus('open'); ev('onRoster', S.roster); callEveryone(); return;
+        }
+        if (m.t === 'full') { setStatus('full', 'full'); close(true); return; }
+        onData(m, isHost() ? mySeat : 0);
+      });
+      const gone = () => {
+        if (isHost()) { if (mySeat == null || L.conns[mySeat] !== c) return; delete L.conns[mySeat]; const p = rosterEntry(mySeat); if (p) p.online = false; persist(); broadcastRoster(); setStatus(Object.keys(L.conns).length ? 'open' : 'waiting'); }
+        else { if (L.conns[0] !== c) return; delete L.conns[0]; setStatus('reconnecting'); scheduleRetry(); }
+        stopAudioFrom(mySeat);
+      };
+      c.on('close', gone); c.on('error', gone);
+    }
+    function broadcastRoster() { if (!isHost()) return; rawAll({ t: 'roster', roster: S.roster }); ev('onRoster', S.roster); }
+
+    /* ---------- messages ---------- */
+    function onData(m, via) {
+      if (m.t === 'roster') { S.roster = m.roster; persist(); ev('onRoster', S.roster); callEveryone(); return; }
+      if (m.t === 'need') { link(via).out.filter(x => x.seq > m.have).forEach(x => rawTo(via, x)); return; }
+      if (m.t === 'emo' || m.t === 'talk' || m.t === 'vm') {
+        if (isHost()) rawAll(m, via);                     // relay to the other guests
+        if (m.t === 'emo') ev('onEmoji', m.e, m.from);
+        else if (m.t === 'talk') { const p = rosterEntry(m.from); if (p) p.talking = m.on; ev('onTalk', m.from, m.on); }
+        else gotChunk(m);
+        return;
+      }
+      if (m.t === 'voice') { const p = rosterEntry(m.from); if (p) p.voice = m.on; if (isHost()) { rawAll(m, via); broadcastRoster(); } callEveryone(); return; }
+      if (m.t !== 'm') return;
+      const lk = link(via);
+      if (m.seq <= lk.lastIn) return;
+      if (m.seq > lk.lastIn + 1) { rawTo(via, { t: 'need', have: lk.lastIn }); return; }
+      lk.lastIn = m.seq; persist();
+      if (isHost() && max() > 2 && !m.p) for (const p of S.roster) if (p.seat !== 0 && p.seat !== m.from) seqTo(p.seat, m.d, m.from);
+      ev('onMessage', m.d, m.from);
+    }
+    function seqTo(seat, d, from, priv) {
+      const lk = link(seat), m = { t: 'm', seq: ++lk.seq, from, d }; if (priv) m.p = 1;
+      lk.out.push(m); if (lk.out.length > 300) lk.out.splice(0, lk.out.length - 300);
+      rawTo(seat, m);
+    }
+    function send(d) {                                    // reliable, ordered, reaches every other player
+      if (!S) return;
+      if (isHost()) { for (const p of S.roster) if (p.seat !== 0) seqTo(p.seat, d, 0); }
+      else seqTo(0, d, S.seat);
+      persist();
+    }
+    function sendTo(seat, d) {                            // private: host → one guest, or guest → host only (not relayed)
+      if (!S || seat === S.seat) return;
+      if (isHost()) { if (S.roster.some(p => p.seat === seat)) seqTo(seat, d, 0, true); }
+      else seqTo(0, d, S.seat, true);
+      persist();
+    }
+    function emoji(e) { if (S) rawAll({ t: 'emo', e, from: S.seat }); }
+    const isOpen = () => !!S && (isHost() ? Object.values(L.conns).some(c => c.open) : !!(L.conns[0] && L.conns[0].open));
+
+    /* ---------- voice: push-to-talk / open mic (direct mesh) ---------- */
+    async function micOn() {
+      if (L.mic) return true;
+      try { L.mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+      catch (e) { ev('onMicError', e && e.name); return false; }
+      L.mic.getAudioTracks().forEach(t => t.enabled = L.openMic);
+      const me = rosterEntry(S.seat); if (me) me.voice = true;
+      const m = { t: 'voice', on: true, from: S.seat }; rawAll(m);
+      callEveryone(); return true;
+    }
+    function callEveryone() {                             // each phone with a mic sends its own one-way audio call to every other phone
+      if (!L.mic || !L.peer || !S) return;
+      for (const p of S.roster) {
+        if (p.seat === S.seat || !p.online || !p.pid) continue;
+        const c = L.calls[p.seat]; if (c && !c._dead) continue;
+        try { const call = L.peer.call(p.pid, L.mic, { metadata: { seat: S.seat } }); L.calls[p.seat] = call; call.on('close', () => { call._dead = true; }); call.on('error', () => { call._dead = true; }); } catch (e) {}
+      }
+    }
+    function onCall(call) {
+      call.answer();                                      // receive only — our own audio goes out on our own call
+      call.on('stream', st => {
+        const seat = call.metadata && call.metadata.seat;
+        let a = L.audio[seat]; if (!a) { a = L.audio[seat] = document.createElement('audio'); a.autoplay = true; a.setAttribute('playsinline', ''); a.style.display = 'none'; document.body.appendChild(a); }
+        a.srcObject = st; const p = a.play(); if (p && p.catch) p.catch(() => ev('onAudioBlocked'));
+      });
+    }
+    function stopAudioFrom(seat) { const a = L.audio[seat]; if (a) { a.srcObject = null; a.remove(); delete L.audio[seat]; } const c = L.calls[seat]; if (c) { try { c.close(); } catch (e) {} delete L.calls[seat]; } }
+    async function talk(on) {
+      if (on && !(await micOn())) return false;
+      if (!L.mic) return false;
+      L.talking = on || L.openMic; L.mic.getAudioTracks().forEach(t => t.enabled = L.talking);
+      rawAll({ t: 'talk', on: L.talking, from: S.seat }); return true;
+    }
+    async function setOpenMic(on) { L.openMic = on; if (on && !(await micOn())) { L.openMic = false; return false; } return talk(on); }
+
+    /* ---------- voice messages ---------- */
+    async function recStart(maxSec) {
+      if (L.rec || !(await micOn())) return false;
+      const track = L.mic.getAudioTracks()[0].clone(); track.enabled = true;
+      const st = new MediaStream([track]), mime = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+      let r; try { r = new MediaRecorder(st, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : undefined); } catch (e) { ev('onMicError', 'rec'); return false; }
+      const parts = [], t0 = Date.now();
+      L.rec = { r, track, t0, timer: setTimeout(() => recStop(), (maxSec || 20) * 1000) };
+      r.ondataavailable = e => { if (e.data && e.data.size) parts.push(e.data); };
+      r.onstop = async () => {
+        track.stop();
+        const dur = Math.round((Date.now() - t0) / 100) / 10, blob = new Blob(parts, { type: r.mimeType || mime || 'audio/webm' });
+        if (L.rec && L.rec.cancel || dur < .4 || !blob.size) { L.rec = null; ev('onRecState', false); return; }
+        L.rec = null; ev('onRecState', false);
+        const data = b64(await blob.arrayBuffer()), id = uid(), CH = 12000, n = Math.ceil(data.length / CH);
+        for (let i = 0; i < n; i++) rawAll({ t: 'vm', id, i, n, dur, mime: blob.type, from: S.seat, data: data.slice(i * CH, (i + 1) * CH) });
+        ev('onVoiceMsg', URL.createObjectURL(blob), dur, S.seat, true);
+      };
+      r.start(); ev('onRecState', true, t0); return true;
+    }
+    function recStop(cancel) { if (!L.rec) return; clearTimeout(L.rec.timer); L.rec.cancel = !!cancel; try { L.rec.r.stop(); } catch (e) {} }
+    function gotChunk(m) {
+      const c = L.chunks[m.id] || (L.chunks[m.id] = { parts: [], got: 0, t: Date.now() });
+      if (c.parts[m.i] == null) { c.parts[m.i] = m.data; c.got++; }
+      if (c.got === m.n) { delete L.chunks[m.id]; const blob = new Blob([unb64(c.parts.join(''))], { type: m.mime || 'audio/webm' }); ev('onVoiceMsg', URL.createObjectURL(blob), m.dur, m.from, false); }
+      for (const k in L.chunks) if (Date.now() - L.chunks[k].t > 60000) delete L.chunks[k];
+    }
+
+    /* ---------- 1.1 heartbeat ----------
+       A phone that closes the app or loses signal often never fires 'close'. Every 3 s we ping
+       everyone; a peer that pings (1.1+) but has been silent for 10 s is treated as gone.
+       Peers on 1.0 never ping, so they are never dropped by mistake. */
+    function beat() {
+      if (!S) return;
+      const now = Date.now();
+      for (const k in L.conns) {
+        const s = +k; rawTo(s, { t: 'ping' });
+        if (!L.hb[s] || now - (L.seen[s] || now) < 10000) continue;
+        L.hb[s] = 0; const c = L.conns[s]; delete L.conns[s]; try { c.close(); } catch (e) {}
+        stopAudioFrom(s);
+        if (isHost()) { const p = rosterEntry(s); if (p) p.online = false; persist(); broadcastRoster(); setStatus(Object.keys(L.conns).length ? 'open' : 'waiting'); }
+        else { setStatus('reconnecting'); scheduleRetry(); }
+      }
+    }
+
+    /* ---------- closing ---------- */
+    function close(keepSession) {
+      clearTimeout(L.retry); clearInterval(L.hbT); L.hbT = null;
+      Object.keys(L.audio).forEach(s => stopAudioFrom(+s));
+      for (const s in L.conns) { try { L.conns[s].close(); } catch (e) {} }
+      L.conns = {};
+      if (L.mic) { L.mic.getTracks().forEach(t => t.stop()); L.mic = null; }
+      L.calls = {}; L.talking = false;
+      try { if (L.peer) L.peer.destroy(); } catch (e) {}
+      L.peer = null; if (!keepSession) S = null; setStatus('off');
+    }
+
+    return {
+      host, join, resume, close, send, sendTo, emoji, isOpen, talk, setOpenMic, recStart, recStop,
+      get status() { return L.status; }, get error() { return L.lastErr; }, get session() { return S; },
+      get seat() { return S ? S.seat : null; }, get roster() { return S ? S.roster : []; },
+      get micReady() { return !!L.mic; }, get talking() { return L.talking; }, get openMic() { return L.openMic; }, get recording() { return !!L.rec; },
+      inviteURL: () => location.origin + location.pathname + '?join=' + (S ? S.code : ''),
+      _L: L
+    };
+  }
+  return { create, genCode, loadPeer };
+})();
+
+
+
 /* ---- core.js ---- */
 /* =====================================================================
    SolitaireNest — app core (storage · settings · screens · cards · sound · backup)
    ===================================================================== */
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'sol_';
@@ -940,7 +1263,74 @@ rulesY:"<h3>המטרה</h3><p>לפנות את כל ה<b>פירמידה</b> (28 �
 rulesTP:"<h3>המטרה</h3><p>לפנות את <b>שלוש הפסגות</b> (28 קלפים).</p><h3>איך</h3><p>מעבירים לערימה הפתוחה קלף <b>אחד למעלה או אחד למטה</b> ממנה, בלי קשר לצורה. מלך ואס מתחברים. קלף נפתח כשאין קלפים שמכסים אותו.</p><p>אין מהלך? הקשה על החפיסה פותחת קלף חדש (מעבר אחד בלבד).</p><h3>ניקוד</h3><p>כל קלף ברצף שווה יותר: הראשון 1, השני 2, השלישי 3... קלף מהחפיסה מאפס את הרצף. ניקוי כל הפסגות: 50 בונוס.</p>",
 rulesGO:"<h3>המטרה</h3><p>לפנות את <b>שבע העמודות</b> (35 קלפים, כולם גלויים).</p><h3>איך</h3><p>מעבירים לערימה את הקלף <b>התחתון</b> של עמודה אם הוא <b>אחד למעלה או אחד למטה</b> מהקלף בערימה, בלי קשר לצורה. <b>על מלך אי אפשר להניח כלום</b>, ומלך ואס לא מתחברים.</p><p>אין מהלך? הקשה על החפיסה פותחת קלף (מעבר אחד בלבד).</p><h3>ניקוד</h3><p>כמו בגולף — כמה שפחות. הניקוד הוא מספר הקלפים שנשארו בשולחן.</p>",
 rulesCF:"<h3>המטרה</h3><p>להעביר את כל הקלפים ל<b>ארבע ערימות האסים</b>.</p><h3>הסידור</h3><p><b>קופה</b> של 13 קלפים (רק העליון גלוי), 4 עמודות, ועוד קלף אחד שנפתח לערימת האסים הראשונה — <b>הוא קובע ממה מתחילים</b>. אם נפתח 7, כל ערימות האסים מתחילות מ-7 ועולות: 7, 8... מלך, אס, 2... עד 6.</p><h3>השולחן</h3><p>בונים <b>בסדר יורד ובצבעים מתחלפים</b>, ואחרי אס בא מלך. עמודה שהתרוקנה מתמלאת לבד מהקופה. כשהקופה נגמרה — אפשר לשים בעמודה ריקה כל קלף.</p><h3>החפיסה</h3><p>פותחים שלושה (או אחד), ומעברים בלי הגבלה.</p>",
-rulesYU:"<h3>המטרה</h3><p>להעביר את כל הקלפים ל<b>ארבע ערימות האסים</b>, לפי צורה מאס עד מלך.</p><h3>השולחן</h3><p>7 עמודות כמו בקלונדייק, אבל <b>אין חפיסה</b> — כל הקלפים כבר בשולחן. בונים <b>בסדר יורד ובצבעים מתחלפים</b>.</p><p>הייחוד: אפשר להזיז <b>כל קלף גלוי יחד עם כל הקלפים שמעליו</b> — גם אם הם לא מסודרים. עמודה ריקה מקבלת רק מלך (עם מה שמעליו).</p>"
+rulesYU:"<h3>המטרה</h3><p>להעביר את כל הקלפים ל<b>ארבע ערימות האסים</b>, לפי צורה מאס עד מלך.</p><h3>השולחן</h3><p>7 עמודות כמו בקלונדייק, אבל <b>אין חפיסה</b> — כל הקלפים כבר בשולחן. בונים <b>בסדר יורד ובצבעים מתחלפים</b>.</p><p>הייחוד: אפשר להזיז <b>כל קלף גלוי יחד עם כל הקלפים שמעליו</b> — גם אם הם לא מסודרים. עמודה ריקה מקבלת רק מלך (עם מה שמעליו).</p>",
+hostTitle:"פתח חדר",
+hostSub:"תקבל קוד לשלוח לחבר, ותבחר משחק.",
+createRoom:"צור חדר",
+joinTitle:"הצטרף לחבר",
+roomCode:"קוד חדר",
+join:"הצטרף",
+codeShort:"הקוד הוא 5 תווים",
+onlineNote:"הטלפונים מתחברים ישירות. הקול עובר מטלפון לטלפון ולא נשמר.",
+stOff:"לא מחובר",
+stConnecting:"מתחבר…",
+stWaiting:"מחכים לחבר",
+stOpen:"מחובר",
+stRecon:"מתחבר מחדש…",
+stNotFound:"החדר לא נמצא — בדוק את הקוד",
+stError:"אין חיבור לשרת",
+stFull:"החדר מלא",
+players:"שחקנים",
+hostLbl:"מארח",
+youLbl:"את/ה",
+noOneYet:"עוד אין אף אחד",
+inviteWa:"הזמנה בוואטסאפ",
+copyLink:"העתק קישור",
+gameRules:"הגדרות המשחק",
+waitHostStart:"המארח יתחיל את המשחק.",
+backToGame:"חזרה למשחק",
+leaveRoom:"צא מהחדר",
+leaveQ:"לצאת מהחדר?",
+waitHostNext:"מחכים שהמארח יתחיל את המשחק הבא",
+seeBoard:"הצג את השולחן",
+talking:"מדבר…",
+stop:"עצור",
+micDenied:"אין הרשאת מיקרופון — אפשר אותה בהגדרות הדפדפן",
+tapToHear:"הקש על המסך כדי לשמוע",
+versionDiff:"לחבר יש גרסה אחרת — כדאי ששניכם תעדכנו",
+holdTalk:"החזק ודבר",
+openMicOn:"מיקרופון פתוח",
+openMicOff:"המיקרופון נסגר",
+phNice:"מהלך יפה!",
+phGG:"משחק יפה 🤝",
+friend:"חבר",
+player:"שחקן",
+waitFriend:"מחכים לחבר…",
+yourName:"השם שלך",
+raceBtn:"מרוץ עם חבר",
+raceBtnSub:"אותה חלוקה, מי שמסיים ראשון — מנצח",
+raceT:"מרוץ סוליטר",
+raceSub:"שניכם מקבלים בדיוק אותה חלוקה, כל אחד בטלפון שלו. רואים את ההתקדמות של החבר בזמן אמת ואפשר לדבר. מי שמסיים ראשון — מנצח.",
+enterName:"כתוב קודם את השם שלך",
+pickGame:"באיזה משחק מתחרים",
+raceSameDeal:"שניכם תקבלו את אותה חלוקה בדיוק.",
+startRace:"התחל מרוץ",
+raceGo:"יאללה! מי שמסיים ראשון מנצח",
+giveUp:"וותר",
+giveUpQ:"לוותר על המרוץ? החבר ינצח.",
+xFinished:"{0} סיים!",
+xGaveUp:"{0} ויתר",
+youWonRace:"ניצחת במרוץ! 🏁",
+xWonRace:"{0} ניצח במרוץ",
+raceAgain:"מרוץ נוסף",
+changeGame:"משחק אחר",
+keepPlaying:"המשך לשחק",
+waText:"בוא להתחרות איתי בסוליטר ב-SolitaireNest! קוד החדר: {0}",
+phHurry:"אני כמעט מסיים 😏",
+phAlmost:"כמעט! 😬",
+inRoom:"חזור לחדר",
+raceStats:"מרוצים",
+roomMenu:"החדר"
 };
 
 /* ---- i18n/en.js ---- */
@@ -996,7 +1386,74 @@ rulesY:"<h3>Goal</h3><p>Clear the whole <b>pyramid</b> (28 cards).</p><h3>How</h
 rulesTP:"<h3>Goal</h3><p>Clear the <b>three peaks</b> (28 cards).</p><h3>How</h3><p>Move a card <b>one up or one down</b> from the open pile onto it, any suit. King and Ace connect. A card opens when no cards cover it.</p><p>No move? Tap the stock to turn a new card (one pass only).</p><h3>Scoring</h3><p>Each card in a run is worth more: the first 1, the second 2, the third 3... A card from the stock resets the run. Clearing all peaks: 50 bonus.</p>",
 rulesGO:"<h3>Goal</h3><p>Clear the <b>seven columns</b> (35 cards, all face up).</p><h3>How</h3><p>Move the <b>bottom</b> card of a column onto the pile if it is <b>one up or one down</b> from the pile's card, any suit. <b>Nothing goes on a King</b>, and King and Ace don't connect.</p><p>No move? Tap the stock to turn a card (one pass only).</p><h3>Scoring</h3><p>Like golf — the lower the better. Your score is the number of cards left on the table.</p>",
 rulesCF:"<h3>Goal</h3><p>Move all cards to the <b>four foundations</b>.</p><h3>Setup</h3><p>A <b>reserve</b> of 13 cards (only the top one open), 4 columns, and one card turned onto the first foundation — <b>it sets the starting rank</b>. If it's a 7, every foundation starts at 7 and goes up: 7, 8... King, Ace, 2... up to 6.</p><h3>The table</h3><p>Build <b>down in alternating colours</b>; after an Ace comes a King. A column that empties is refilled from the reserve by itself. Once the reserve is gone, any card can go into an empty column.</p><h3>The stock</h3><p>Turn three (or one), with unlimited passes.</p>",
-rulesYU:"<h3>Goal</h3><p>Move all cards to the <b>four foundations</b>, by suit from Ace to King.</p><h3>The table</h3><p>7 columns like Klondike, but <b>no stock</b> — every card is already on the table. Build <b>down in alternating colours</b>.</p><p>The twist: you can move <b>any face-up card together with all the cards on top of it</b> — even if they're not in order. An empty column takes only a King (with whatever is on it).</p>"
+rulesYU:"<h3>Goal</h3><p>Move all cards to the <b>four foundations</b>, by suit from Ace to King.</p><h3>The table</h3><p>7 columns like Klondike, but <b>no stock</b> — every card is already on the table. Build <b>down in alternating colours</b>.</p><p>The twist: you can move <b>any face-up card together with all the cards on top of it</b> — even if they're not in order. An empty column takes only a King (with whatever is on it).</p>",
+hostTitle:"Open a room",
+hostSub:"You'll get a code to send your friend, and pick a game.",
+createRoom:"Create room",
+joinTitle:"Join a friend",
+roomCode:"Room code",
+join:"Join",
+codeShort:"The code is 5 characters",
+onlineNote:"The phones connect directly. Voice goes phone to phone and is never stored.",
+stOff:"Not connected",
+stConnecting:"Connecting…",
+stWaiting:"Waiting for your friend",
+stOpen:"Connected",
+stRecon:"Reconnecting…",
+stNotFound:"Room not found — check the code",
+stError:"No connection to the server",
+stFull:"The room is full",
+players:"Players",
+hostLbl:"host",
+youLbl:"you",
+noOneYet:"Nobody yet",
+inviteWa:"Invite on WhatsApp",
+copyLink:"Copy link",
+gameRules:"Game settings",
+waitHostStart:"The host will start the game.",
+backToGame:"Back to the game",
+leaveRoom:"Leave the room",
+leaveQ:"Leave the room?",
+waitHostNext:"Waiting for the host to start the next game",
+seeBoard:"Show the table",
+talking:"is talking…",
+stop:"Stop",
+micDenied:"No microphone permission — allow it in the browser settings",
+tapToHear:"Tap the screen to hear",
+versionDiff:"Your friend has a different version — both of you should update",
+holdTalk:"Hold to talk",
+openMicOn:"Microphone open",
+openMicOff:"Microphone closed",
+phNice:"Nice move!",
+phGG:"Good game 🤝",
+friend:"Friend",
+player:"Player",
+waitFriend:"Waiting for your friend…",
+yourName:"Your name",
+raceBtn:"Race a friend",
+raceBtnSub:"Same deal — the first to finish wins",
+raceT:"Solitaire race",
+raceSub:"You both get exactly the same deal, each on your own phone. You see your friend's progress live and can talk. The first to finish wins.",
+enterName:"Write your name first",
+pickGame:"Which game to race",
+raceSameDeal:"You'll both get exactly the same deal.",
+startRace:"Start the race",
+raceGo:"Go! The first to finish wins",
+giveUp:"Give up",
+giveUpQ:"Give up the race? Your friend wins.",
+xFinished:"{0} finished!",
+xGaveUp:"{0} gave up",
+youWonRace:"You won the race! 🏁",
+xWonRace:"{0} won the race",
+raceAgain:"Race again",
+changeGame:"Another game",
+keepPlaying:"Keep playing",
+waText:"Come race me at solitaire on SolitaireNest! Room code: {0}",
+phHurry:"I'm almost done 😏",
+phAlmost:"Almost! 😬",
+inRoom:"Back to the room",
+raceStats:"Races",
+roomMenu:"The room"
 };
 
 /* ---- i18n/ru.js ---- */
@@ -1052,7 +1509,74 @@ gGolfLong:"Кладите на стопку карту на единицу ст�
 gCanfieldSub:"С резервом из 13 карт",
 gCanfieldLong:"Резерв из 13 карт и базы, которые начинаются с первой открытой карты. Сложно и увлекательно.",
 gYukonSub:"Как Клондайк — без колоды",
-gYukonLong:"Все карты на столе, и любая открытая карта перемещается со всем, что лежит поверх неё, — даже если это не по порядку."
+gYukonLong:"Все карты на столе, и любая открытая карта перемещается со всем, что лежит поверх неё, — даже если это не по порядку.",
+hostTitle:"Открыть комнату",
+hostSub:"Вы получите код, чтобы отправить другу, и выберете игру.",
+createRoom:"Создать комнату",
+joinTitle:"Присоединиться",
+roomCode:"Код комнаты",
+join:"Войти",
+codeShort:"Код — 5 символов",
+onlineNote:"Телефоны соединяются напрямую. Голос идёт от телефона к телефону и не сохраняется.",
+stOff:"Нет связи",
+stConnecting:"Подключение…",
+stWaiting:"Ждём друга",
+stOpen:"Подключено",
+stRecon:"Переподключение…",
+stNotFound:"Комната не найдена — проверьте код",
+stError:"Нет связи с сервером",
+stFull:"Комната заполнена",
+players:"Игроки",
+hostLbl:"хозяин",
+youLbl:"вы",
+noOneYet:"Пока никого",
+inviteWa:"Пригласить в WhatsApp",
+copyLink:"Копировать ссылку",
+gameRules:"Настройки игры",
+waitHostStart:"Хозяин начнёт игру.",
+backToGame:"Вернуться к игре",
+leaveRoom:"Выйти из комнаты",
+leaveQ:"Выйти из комнаты?",
+waitHostNext:"Ждём, пока хозяин начнёт следующую партию",
+seeBoard:"Показать стол",
+talking:"говорит…",
+stop:"Стоп",
+micDenied:"Нет доступа к микрофону — разрешите в настройках браузера",
+tapToHear:"Коснитесь экрана, чтобы услышать",
+versionDiff:"У друга другая версия — обновитесь оба",
+holdTalk:"Держи и говори",
+openMicOn:"Микрофон открыт",
+openMicOff:"Микрофон закрыт",
+phNice:"Отличный ход!",
+phGG:"Хорошая игра 🤝",
+friend:"Друг",
+player:"Игрок",
+waitFriend:"Ждём друга…",
+yourName:"Ваше имя",
+giveUp:"Сдаться",
+roomMenu:"Комната",
+raceBtnSub:"Одинаковая раздача — побеждает тот, кто закончит первым",
+enterName:"Сначала напишите своё имя",
+raceT:"Гонка в пасьянс",
+raceSub:"Вы оба получаете одну и ту же раздачу, каждый на своём телефоне. Вы видите прогресс друга в реальном времени и можете разговаривать. Побеждает тот, кто закончит первым.",
+pickGame:"В какой игре соревноваться",
+raceSameDeal:"Вы оба получите одну и ту же раздачу.",
+startRace:"Начать гонку",
+waText:"Давай сыграем наперегонки в пасьянс в SolitaireNest! Код комнаты: {0}",
+raceGo:"Старт! Побеждает тот, кто закончит первым",
+giveUpQ:"Сдаться? Победа достанется другу.",
+xFinished:"{0} закончил(а)!",
+youWonRace:"Вы выиграли гонку! 🏁",
+xWonRace:"{0} выиграл(а) гонку",
+raceAgain:"Ещё гонка",
+changeGame:"Другая игра",
+keepPlaying:"Продолжить игру",
+xGaveUp:"{0} сдался(-ась)",
+raceBtn:"Гонка с другом",
+phHurry:"Я почти закончил 😏",
+phAlmost:"Почти! 😬",
+inRoom:"Назад в комнату",
+raceStats:"Гонки"
 };
 
 /* ---- i18n/es.js ---- */
@@ -1108,7 +1632,74 @@ gGolfLong:"Pasa a la pila una carta uno más o uno menos que la abierta — hast
 gCanfieldSub:"Con una reserva de 13 cartas",
 gCanfieldLong:"Una reserva de 13 cartas y fundaciones que empiezan desde la primera carta volteada. Difícil y satisfactorio.",
 gYukonSub:"Como Klondike — sin mazo",
-gYukonLong:"Todas las cartas están en la mesa, y cualquier carta boca arriba se mueve con todo lo que tiene encima — aunque no esté en orden."
+gYukonLong:"Todas las cartas están en la mesa, y cualquier carta boca arriba se mueve con todo lo que tiene encima — aunque no esté en orden.",
+hostTitle:"Abrir sala",
+hostSub:"Recibirás un código para enviar a tu amigo y elegirás un juego.",
+createRoom:"Crear sala",
+joinTitle:"Unirse a un amigo",
+roomCode:"Código de sala",
+join:"Unirse",
+codeShort:"El código tiene 5 caracteres",
+onlineNote:"Los teléfonos se conectan directamente. La voz va de teléfono a teléfono y no se guarda.",
+stOff:"Sin conexión",
+stConnecting:"Conectando…",
+stWaiting:"Esperando a tu amigo",
+stOpen:"Conectado",
+stRecon:"Reconectando…",
+stNotFound:"Sala no encontrada — revisa el código",
+stError:"Sin conexión con el servidor",
+stFull:"La sala está llena",
+players:"Jugadores",
+hostLbl:"anfitrión",
+youLbl:"tú",
+noOneYet:"Todavía nadie",
+inviteWa:"Invitar por WhatsApp",
+copyLink:"Copiar enlace",
+gameRules:"Ajustes de la partida",
+waitHostStart:"El anfitrión empezará la partida.",
+backToGame:"Volver a la partida",
+leaveRoom:"Salir de la sala",
+leaveQ:"¿Salir de la sala?",
+waitHostNext:"Esperando a que el anfitrión empiece la siguiente partida",
+seeBoard:"Ver la mesa",
+talking:"está hablando…",
+stop:"Parar",
+micDenied:"Sin permiso de micrófono — actívalo en los ajustes del navegador",
+tapToHear:"Toca la pantalla para escuchar",
+versionDiff:"Tu amigo tiene otra versión — actualicen los dos",
+holdTalk:"Mantén para hablar",
+openMicOn:"Micrófono abierto",
+openMicOff:"Micrófono cerrado",
+phNice:"¡Buena jugada!",
+phGG:"Buena partida 🤝",
+friend:"Amigo",
+player:"Jugador",
+waitFriend:"Esperando a tu amigo…",
+yourName:"Tu nombre",
+giveUp:"Rendirse",
+roomMenu:"La sala",
+raceBtnSub:"Mismo reparto — gana quien termine primero",
+enterName:"Primero escribe tu nombre",
+raceT:"Carrera de Solitario",
+raceSub:"Los dos reciben exactamente el mismo reparto, cada uno en su teléfono. Ves el progreso de tu amigo en vivo y pueden hablar. Gana quien termine primero.",
+pickGame:"¿En qué juego competir?",
+raceSameDeal:"Los dos recibirán exactamente el mismo reparto.",
+startRace:"Empezar la carrera",
+waText:"¡Ven a echarme una carrera de Solitario en SolitaireNest! Código de sala: {0}",
+raceGo:"¡Ya! Gana quien termine primero",
+giveUpQ:"¿Rendirte en la carrera? Gana tu amigo.",
+xFinished:"¡{0} terminó!",
+youWonRace:"¡Ganaste la carrera! 🏁",
+xWonRace:"{0} ganó la carrera",
+raceAgain:"Otra carrera",
+changeGame:"Otro juego",
+keepPlaying:"Seguir jugando",
+xGaveUp:"{0} se rindió",
+raceBtn:"Carrera con un amigo",
+phHurry:"Ya casi termino 😏",
+phAlmost:"¡Casi! 😬",
+inRoom:"Volver a la sala",
+raceStats:"Carreras"
 };
 
 /* ---- i18n/ar.js ---- */
@@ -1164,7 +1755,74 @@ gGolfLong:"انقل إلى الكومة ورقة أعلى أو أدنى بواح
 gCanfieldSub:"مع احتياطي من 13 ورقة",
 gCanfieldLong:"احتياطي من 13 ورقة وأساسات تبدأ من أول ورقة تُكشف. صعبة وممتعة.",
 gYukonSub:"مثل كلوندايك — بلا رزمة",
-gYukonLong:"كل الأوراق على الطاولة، وأي ورقة مكشوفة تتحرك مع كل ما فوقها — حتى لو لم يكن مرتبًا."
+gYukonLong:"كل الأوراق على الطاولة، وأي ورقة مكشوفة تتحرك مع كل ما فوقها — حتى لو لم يكن مرتبًا.",
+hostTitle:"افتح غرفة",
+hostSub:"ستحصل على رمز ترسله لصديقك، وتختار لعبة.",
+createRoom:"أنشئ غرفة",
+joinTitle:"انضم إلى صديق",
+roomCode:"رمز الغرفة",
+join:"انضم",
+codeShort:"الرمز من 5 أحرف",
+onlineNote:"الهواتف تتصل مباشرة. الصوت ينتقل من هاتف إلى هاتف ولا يُحفظ.",
+stOff:"غير متصل",
+stConnecting:"جارٍ الاتصال…",
+stWaiting:"بانتظار صديقك",
+stOpen:"متصل",
+stRecon:"إعادة الاتصال…",
+stNotFound:"الغرفة غير موجودة — تحقق من الرمز",
+stError:"لا اتصال بالخادم",
+stFull:"الغرفة ممتلئة",
+players:"اللاعبون",
+hostLbl:"المضيف",
+youLbl:"أنت",
+noOneYet:"لا أحد بعد",
+inviteWa:"دعوة عبر واتساب",
+copyLink:"انسخ الرابط",
+gameRules:"إعدادات اللعبة",
+waitHostStart:"المضيف سيبدأ اللعبة.",
+backToGame:"العودة إلى اللعبة",
+leaveRoom:"اخرج من الغرفة",
+leaveQ:"الخروج من الغرفة؟",
+waitHostNext:"بانتظار المضيف ليبدأ اللعبة التالية",
+seeBoard:"اعرض الطاولة",
+talking:"يتكلّم…",
+stop:"إيقاف",
+micDenied:"لا إذن للميكروفون — فعّله في إعدادات المتصفح",
+tapToHear:"المس الشاشة لتسمع",
+versionDiff:"لدى صديقك إصدار مختلف — حدّثا كلاكما",
+holdTalk:"اضغط وتكلّم",
+openMicOn:"الميكروفون مفتوح",
+openMicOff:"الميكروفون مغلق",
+phNice:"حركة جميلة!",
+phGG:"لعبة جميلة 🤝",
+friend:"صديق",
+player:"لاعب",
+waitFriend:"بانتظار صديقك…",
+yourName:"اسمك",
+giveUp:"استسلام",
+roomMenu:"الغرفة",
+raceBtnSub:"نفس التوزيعة — يفوز من ينهي أولاً",
+enterName:"اكتب اسمك أولاً",
+raceT:"سباق سوليتير",
+raceSub:"تحصلان كلاكما على نفس التوزيعة تماماً، كلٌّ على هاتفه. ترى تقدّم صديقك مباشرةً ويمكنكما التحدث. يفوز من ينهي أولاً.",
+pickGame:"في أي لعبة تتسابقان",
+raceSameDeal:"ستحصلان كلاكما على نفس التوزيعة تماماً.",
+startRace:"ابدأ السباق",
+waText:"تعال نتسابق في سوليتير على SolitaireNest! رمز الغرفة: {0}",
+raceGo:"انطلق! يفوز من ينهي أولاً",
+giveUpQ:"الاستسلام في السباق؟ سيفوز صديقك.",
+xFinished:"{0} أنهى!",
+youWonRace:"فزت بالسباق! 🏁",
+xWonRace:"{0} فاز بالسباق",
+raceAgain:"سباق آخر",
+changeGame:"لعبة أخرى",
+keepPlaying:"تابع اللعب",
+xGaveUp:"{0} استسلم",
+raceBtn:"سابِق صديقاً",
+phHurry:"أوشكت على الانتهاء 😏",
+phAlmost:"تقريباً! 😬",
+inRoom:"العودة إلى الغرفة",
+raceStats:"السباقات"
 };
 
 /* ---- table.js ---- */
@@ -1197,13 +1855,13 @@ function pickSeed(g, opt) {
   if (g === 'klondike' && ST.kWin && typeof KWIN !== 'undefined') { const L = KWIN[opt.draw === 3 ? 3 : 1]; if (L && L.length) return L[Math.floor(Math.random() * L.length)]; }
   return 1 + Math.floor(Math.random() * 2e9);
 }
-function newDeal(g, opt, seed, daily) {
+function newDeal(g, opt, seed, daily, race) {
   opt = Object.assign({}, opt);
-  if (g === 'klondike') Object.assign(opt, { limit: ST.kLimit, scoring: daily ? 'std' : ST.kScore });
+  if (g === 'klondike' && !race) Object.assign(opt, { limit: ST.kLimit, scoring: daily ? 'std' : ST.kScore });
   if (seed == null) seed = pickSeed(g, opt);
   const S = SOL.GAMES[g].deal(seed, opt);
   if (g === 'klondike' && opt.scoring === 'vegas') { ST.vegasBank = (ST.vegasBank || 0) - 52; saveST(); }
-  G = { g, opt, S, hist: [], el: 0, started: false, daily: daily || null, counted: false, undos: 0, hints: 0, k: statKey(g, opt), seed };
+  G = { g, opt, S, hist: [], el: 0, started: false, daily: daily || null, race: race || null, counted: false, undos: 0, hints: 0, k: statKey(g, opt), seed };
   const st = LS.get('stats', {}), b = st[G.k] || (st[G.k] = blankStat()); b.played++; LS.set('stats', st);
   IDLE = 0; clearTimeout(FIN); FIN = null;
   saveGame(); RECT = {}; DEALING = true; show('game'); beep('shuffle');
@@ -1214,7 +1872,7 @@ function dailyDeal() {
   const seed = L[((dayIndex(d) % L.length) + L.length) % L.length];
   newDeal('klondike', { draw: 1 }, seed, d);
 }
-function restartDeal() { if (!G) return; const { g, opt, seed, daily } = G; G.counted = true; newDeal(g, { draw: opt.draw, suits: opt.suits }, seed, daily); }
+function restartDeal() { if (!G) return; const { g, opt, seed, daily, race } = G; G.counted = true; newDeal(g, race ? opt : { draw: opt.draw, suits: opt.suits }, seed, daily, race); }
 const blankStat = () => ({ played: 0, won: 0, best: 0, bestMoves: 0, streak: 0, bestStreak: 0, time: 0, score: 0 });
 
 /* ---------- acting (every action is one undo step, including the cards that went up by themselves) ---------- */
@@ -1251,7 +1909,8 @@ function undo() {
 }
 function after() {
   const S = G.S;
-  if (S.won && !G.counted) { saveGame(); renderGame(); win(); return; }
+  if (S.won && !G.counted) { saveGame(); renderGame(); if (G.race) raceProgress(); win(); return; }
+  if (G.race) raceProgress();
   saveGame(); renderGame();
   if (!S.won && ST.autoFinish && GM().canFinish(S) && !FIN) FIN = setTimeout(autoFinish, 450);
   // going round the stock with nothing else to do → say so once
@@ -1259,8 +1918,8 @@ function after() {
   if ((S.g === 'spider' || S.g === 'pyramid' || S.g === 'tripeaks' || S.g === 'golf') && !S.won && !GM().hints(S).length && !G.toldStuck) { G.toldStuck = true; setTimeout(noMoves, 350); }
 }
 function noMoves() {
-  const o = overlay('<h3>' + esc(T('noMovesT')) + '</h3><p class="muted">' + esc(T('noMovesSub')) + '</p><div class="row" style="margin-top:10px"><button class="btn" data-k="undo">↶ ' + esc(T('undo')) + '</button><button class="btn" data-k="again">🔁 ' + esc(T('sameDeal')) + '</button><button class="btn main" data-k="new">🂠 ' + esc(T('newDeal')) + '</button></div>', 'center');
-  o.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; closeOv(o); if (k.dataset.k === 'undo') undo(); else if (k.dataset.k === 'again') restartDeal(); else if (k.dataset.k === 'new') newDeal(G.g, G.opt); });
+  const o = overlay('<h3>' + esc(T('noMovesT')) + '</h3><p class="muted">' + esc(T('noMovesSub')) + '</p><div class="row" style="margin-top:10px"><button class="btn" data-k="undo">↶ ' + esc(T('undo')) + '</button>' + (inRace() ? '<button class="btn main" data-k="give">🏳️ ' + esc(T('giveUp')) + '</button>' : '<button class="btn" data-k="again">🔁 ' + esc(T('sameDeal')) + '</button><button class="btn main" data-k="new">🂠 ' + esc(T('newDeal')) + '</button>') + '</div>', 'center');
+  o.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; closeOv(o); if (k.dataset.k === 'undo') undo(); else if (k.dataset.k === 'give') raceGiveUp(); else if (k.dataset.k === 'again') restartDeal(); else if (k.dataset.k === 'new') newDeal(G.g, G.opt); });
 }
 /* every card that can go up, one by one */
 function autoFinish() {
@@ -1309,7 +1968,7 @@ function win() {
   if (G.daily) { const D = LS.get('daily', {}); D[G.daily] = { t: sec, m: S.moves }; LS.set('daily', D); }
   G.newBest = newBest; saveGame();
   beep('win'); buzz([40, 30, 80]);
-  celebrate(() => showResult());
+  celebrate(() => inRace() ? raceResult() : showResult());
 }
 function lostStreak() { if (!G || G.counted || !G.started) return; const st = LS.get('stats', {}), b = st[G.k]; if (b) { b.streak = 0; LS.set('stats', st); } }
 const fmtT = ms => { const s = Math.floor(ms / 1000); return iso(Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0')); };
@@ -1468,7 +2127,7 @@ function renderGame(fresh) {
   if (HINT && HINT.to) { const d = dropEl(HINT.to); if (d) d.classList.add('hintc'); }
   if (HINT && HINT.a === 'stock') host.querySelectorAll('[data-stock]').forEach(e => e.classList.add('hintc'));
   glide(host, fresh);
-  renderTop(); renderBar();
+  renderTop(); renderBar(); renderRace();
 }
 /* FLIP: every card starts where it was and glides to its new place (new cards come from the stock) */
 function glide(host, fresh) {
@@ -1499,7 +2158,7 @@ function renderBar() {
   const h = '<button class="btn" data-k="undo" ' + (G.hist.length && !S.won ? '' : 'disabled') + '>↶<small>' + esc(T('undo')) + '</small></button>' +
     '<button class="btn" data-k="hint" ' + (S.won ? 'disabled' : '') + '>💡<small>' + esc(T('hint')) + '</small></button>' +
     (fin ? '<button class="btn main" data-k="finish">✨<small>' + esc(T('finish')) + '</small></button>' : '') +
-    '<button class="btn" data-k="new">🂠<small>' + esc(T('newDeal')) + '</small></button>';
+    (inRace() ? '<button class="btn" data-k="give" ' + (S.won || (RC && RC.res) ? 'disabled' : '') + '>🏳️<small>' + esc(T('giveUp')) + '</small></button>' : '<button class="btn" data-k="new">🂠<small>' + esc(T('newDeal')) + '</small></button>');
   const bar = $('#abar'); if (bar.dataset.sig !== h) { bar.innerHTML = h; bar.dataset.sig = h; }
 }
 
@@ -1558,7 +2217,7 @@ function bindGame() {
   $('#abar').addEventListener('click', e => {
     const k = e.target.closest('[data-k]'); if (!k || k.disabled) return;
     const v = k.dataset.k;
-    if (v === 'undo') undo(); else if (v === 'hint') hint(); else if (v === 'finish') { clearTimeout(FIN); autoFinish(); }
+    if (v === 'undo') undo(); else if (v === 'give') raceGiveUp(); else if (v === 'hint') hint(); else if (v === 'finish') { clearTimeout(FIN); autoFinish(); }
     else if (v === 'new') { if (G.started && !G.S.won) confirmBox(T('newDealQ'), T('newDeal'), () => { lostStreak(); setupBox(G.g); }); else setupBox(G.g); }
   });
   $('#gBack').onclick = () => { show('home'); renderHome(); };
@@ -1567,15 +2226,249 @@ function bindGame() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) lastTick = Date.now(); else if (G) saveGame(); });
 }
 function gameMenu() {
-  const items = [['again', '🔁 ' + T('sameDeal')], ['rules', '📖 ' + T('rules')], ['sound', ST.sound ? '🔇 ' + T('soundOff') : '🔊 ' + T('soundOn')], ['settings', '⚙️ ' + T('settings')]];
+  const items = [...(inRace() ? [['room', '👥 ' + T('roomMenu')]] : []), ['again', '🔁 ' + T('sameDeal')], ['rules', '📖 ' + T('rules')], ['sound', ST.sound ? '🔇 ' + T('soundOff') : '🔊 ' + T('soundOn')], ['settings', '⚙️ ' + T('settings')]];
   const o = overlay('<h3>' + esc(T('menu')) + '</h3><p class="muted">' + esc(gameTitle(G.S.g, G.S.opt)) + ' · ' + esc(T('dealNo', iso('#' + G.seed))) + '</p><div style="display:grid;gap:8px">' + items.map(([k, l]) => '<button class="btn ghosty" data-k="' + k + '">' + esc(l) + '</button>').join('') + '<button class="btn" data-k="x">' + esc(T('close')) + '</button></div>');
   o.addEventListener('click', e => {
     const b = e.target.closest('[data-k]'); if (!b) return; const k = b.dataset.k; closeOv(o);
     if (k === 'again') confirmBox(T('sameDealQ'), T('sameDeal'), () => { lostStreak(); restartDeal(); });
+    else if (k === 'room') { show('lobby'); renderLobby(); }
     else if (k === 'rules') { renderRules(G.S.g); RULES_BACK = 'game'; show('rules'); }
     else if (k === 'sound') { ST.sound = !ST.sound; saveST(); }
     else if (k === 'settings') { renderSettings(); SET_BACK = 'game'; show('settings'); }
   });
+}
+
+/* ---- race.js ---- */
+/* =====================================================================
+   SolitaireNest 1.2 — online race with a friend (NestLink 1.1)
+   Both phones get the same game and the same deal number. Each plays on its own phone;
+   every move sends a small progress note (how much is cleared, moves, play time).
+   The first to win takes the race; giving up hands it to the other. Voice / emoji / voice messages
+   travel directly between the phones, as in every AppNest online game.
+   RC (saved): { sess, role, code, cfg {g, opt}, mid, names [me, friend], opp {p, m, el, done, gave}, me {..}, score [me, friend], res }
+   ===================================================================== */
+let LINK = null, RC = LS.get('race', null);
+const saveRC = () => LS.set('race', RC);
+const inRace = () => !!(G && G.race && RC && RC.mid === G.race.mid);
+const isHostR = () => !!RC && RC.role === 'host';
+const RGAMES = ['klondike', 'freecell', 'spider', 'pyramid', 'tripeaks', 'golf', 'canfield', 'yukon'];
+
+function initLink() {
+  if (LINK) return;
+  LINK = NestLink.create({
+    app: 'solitairenest', version: APP_VERSION, maxPlayers: 2,
+    name: () => ST.name || T('player'),
+    persist: sess => { if (RC) { RC.sess = sess; saveRC(); } },
+    onStatus: () => { renderNet(); if (SCREEN === 'lobby') renderLobby(); },
+    onJoin: () => { if (isHostR()) LINK.sendTo(1, { type: 'cfg', cfg: RC.cfg }); },
+    onRoster: () => { const p = LINK.roster.find(x => x.seat !== LINK.seat); if (p && RC) { RC.names[1] = p.name || T('friend'); saveRC(); } if (SCREEN === 'lobby') renderLobby(); if (SCREEN === 'game') renderRace(); },
+    onMessage: (m, from) => raceMsg(m, from),
+    onEmoji: (e, from) => bubble(from, e),
+    onTalk: (s, on) => { if (s !== LINK.seat && on) toast('🎙 ' + (RC ? RC.names[1] : '') + ' ' + T('talking'), 1500); },
+    onVoiceMsg: (url, sec, s, mine) => voiceMsg(url, sec, s, mine),
+    onRecState: on => { const b = $('#vRec'); if (b) { b.classList.toggle('on', on); b.textContent = on ? '⏹ ' + T('stop') : '⏺'; } },
+    onMicError: () => toast(T('micDenied'), 4000),
+    onAudioBlocked: () => toast(T('tapToHear'), 4000),
+    onVersion: () => toast(T('versionDiff'), 5000),
+    onCode: () => { if (SCREEN === 'lobby') renderLobby(); }
+  });
+}
+const raceProg = S => {
+  const P = S.p, sum = ks => ks.reduce((a, k) => a + (P[k] ? P[k].length : 0), 0);
+  if (S.g === 'pyramid') return 1 - sum(Object.keys(P).filter(k => k[0] === 'p')) / 28;
+  if (S.g === 'tripeaks') return 1 - sum(Object.keys(P).filter(k => k[0] === 'q')) / 28;
+  if (S.g === 'golf') return 1 - sum(Object.keys(P).filter(k => k[0] === 't')) / 35;
+  return sum(Object.keys(P).filter(k => k[0] === 'f')) / (S.g === 'spider' ? 104 : 52);
+};
+
+/* ---------- lobby ---------- */
+function openLobby(code) { initLink(); show('lobby'); if (code && !RC) { raceJoin(code); return; } renderLobby(); }
+function raceHost() {
+  initLink(); const g = ST.rGame || 'klondike';
+  RC = { role: 'host', cfg: { g, opt: raceOpt(g) }, names: [ST.name || T('player'), ''], score: [0, 0], opp: null, me: null, mid: null };
+  saveRC(); LINK.host(); renderLobby();
+}
+function raceJoin(code) {
+  code = String(code || '').trim().toUpperCase(); if (code.length < 4) { toast(T('codeShort')); return; }
+  initLink(); RC = { role: 'guest', cfg: null, names: [ST.name || T('player'), ''], score: [0, 0], opp: null, me: null, mid: null };
+  saveRC(); LINK.join(code); renderLobby();
+}
+function raceOpt(g) {
+  if (g === 'klondike') return { draw: ST.kDraw || 1, limit: false, scoring: 'none' };
+  if (g === 'spider') return { suits: ST.sSuits || 1 };
+  if (g === 'canfield') return { draw: ST.cDraw || 3 };
+  return {};
+}
+function statusTxt() {
+  const st = LINK ? LINK.status : 'off';
+  return { off: T('stOff'), connecting: T('stConnecting'), waiting: T('stWaiting'), open: T('stOpen'), reconnecting: T('stRecon'), notfound: T('stNotFound'), error: T('stError'), full: T('stFull') }[st] || st;
+}
+const friendOnline = () => !!(LINK && LINK.roster.some(p => p.seat !== LINK.seat && p.online));
+const cfgTxt = c => c ? GNAME(c.g) + (c.g === 'klondike' || c.g === 'canfield' ? ' · ' + T(c.opt.draw === 3 ? 'draw3' : 'draw1') : c.g === 'spider' ? ' · ' + T('suitsN', c.opt.suits || 1) : '') : '';
+function renderLobby() {
+  const b = $('#lobbyBody'); if (!b) return;
+  if (!RC) {
+    b.innerHTML = '<div class="card"><h3>🏁 ' + esc(T('raceT')) + '</h3><p class="muted">' + esc(T('raceSub')) + '</p><label class="f" for="lName">' + esc(T('yourName')) + '</label><input class="in" id="lName" maxlength="20" value="' + esc(ST.name || '') + '"></div>' +
+      '<div class="card"><h3>' + esc(T('hostTitle')) + '</h3><p class="muted">' + esc(T('hostSub')) + '</p><button class="btn main" id="lHost" style="width:100%">' + esc(T('createRoom')) + '</button></div>' +
+      '<div class="card"><h3>' + esc(T('joinTitle')) + '</h3><label class="f" for="lCode">' + esc(T('roomCode')) + '</label><input class="in" id="lCode" maxlength="6" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;text-align:center;font-size:22px;direction:ltr"><button class="btn main" id="lJoin" style="width:100%;margin-top:10px">' + esc(T('join')) + '</button></div>' +
+      '<p class="muted">' + esc(T('onlineNote')) + '</p>';
+    const nm = () => { ST.name = $('#lName').value.trim().slice(0, 20); saveST(); };
+    $('#lHost').onclick = () => { nm(); if (!ST.name) { toast(T('enterName')); return; } raceHost(); };
+    $('#lJoin').onclick = () => { nm(); if (!ST.name) { toast(T('enterName')); return; } raceJoin($('#lCode').value); };
+    $('#lCode').onkeydown = e => { if (e.key === 'Enter') $('#lJoin').click(); };
+    return;
+  }
+  const host = isHostR(), code = LINK && LINK.session ? LINK.session.code : '', on = friendOnline();
+  const ros = (LINK ? LINK.roster : []).map(p => '<div><span style="width:10px;height:10px;border-radius:50%;background:' + (p.online ? '#46d07a' : '#888') + '"></span><b>' + esc(p.name || T('player')) + '</b>' + (p.seat === 0 ? ' <span class="muted">· ' + esc(T('hostLbl')) + '</span>' : '') + (LINK && p.seat === LINK.seat ? ' <span class="muted">· ' + esc(T('youLbl')) + '</span>' : '') + '</div>').join('');
+  let h = '<div class="card" style="text-align:center"><div class="muted">' + esc(T('roomCode')) + '</div><div class="code">' + esc(code || '·····') + '</div><div class="muted" aria-live="polite">' + esc(statusTxt()) + '</div>';
+  if (host && code) h += '<div class="row" style="margin-top:10px"><button class="btn main" id="lWa">💬 ' + esc(T('inviteWa')) + '</button><button class="btn" id="lCopy">🔗 ' + esc(T('copyLink')) + '</button></div>';
+  h += '</div><div class="card"><h3>' + esc(T('players')) + '</h3><div class="roster">' + (ros || '<div class="muted">' + esc(T('noOneYet')) + '</div>') + '</div>' + (RC.score[0] + RC.score[1] ? '<p class="muted" style="text-align:center">🏁 ' + iso(RC.score[0] + ' : ' + RC.score[1]) + '</p>' : '') + '</div>';
+  if (host) {
+    const g = RC.cfg.g;
+    h += '<div class="card"><h3>' + esc(T('pickGame')) + '</h3><div class="rgrid">' + RGAMES.map(k => '<button data-rg="' + k + '" class="' + (k === g ? 'on' : '') + '"><img src="img/g-' + k + '.webp" alt=""><span>' + esc(GNAME(k)) + '</span></button>').join('') + '</div>';
+    if (g === 'klondike' || g === 'canfield') h += '<label class="f">' + esc(T('drawLbl')) + '</label><div class="seg" data-ro="draw"><button data-v="1" class="' + (RC.cfg.opt.draw === 1 ? 'on' : '') + '">' + esc(T('draw1')) + '</button><button data-v="3" class="' + (RC.cfg.opt.draw === 3 ? 'on' : '') + '">' + esc(T('draw3')) + '</button></div>';
+    if (g === 'spider') h += '<label class="f">' + esc(T('suitsLbl')) + '</label><div class="seg" data-ro="suits">' + [1, 2, 4].map(n => '<button data-v="' + n + '" class="' + (RC.cfg.opt.suits === n ? 'on' : '') + '">' + esc(T('suitsN', n)) + '</button>').join('') + '</div>';
+    h += '<p class="sub">' + esc(T('raceSameDeal')) + '</p></div>';
+    h += '<button class="btn main" id="lStart" style="width:100%" ' + (on ? '' : 'disabled') + '>' + esc(on ? '🏁 ' + T('startRace') : T('waitFriend')) + '</button>';
+  } else h += '<div class="card"><h3>' + esc(T('gameRules')) + '</h3><p>' + esc(RC.cfg ? cfgTxt(RC.cfg) : T('waitHostStart')) + '</p><p class="muted">' + esc(T('waitHostStart')) + '</p></div>';
+  if (inRace() && G && !G.S.won) h += '<button class="btn" id="lBack" style="width:100%;margin-top:10px">▶ ' + esc(T('backToGame')) + '</button>';
+  h += '<button class="btn" id="lLeave" style="width:100%;margin-top:10px">🚪 ' + esc(T('leaveRoom')) + '</button>';
+  b.innerHTML = h;
+  const link = LINK ? LINK.inviteURL() : '';
+  if ($('#lWa')) $('#lWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(T('waText', code) + '\n' + link), '_blank');
+  if ($('#lCopy')) $('#lCopy').onclick = async () => { try { await navigator.clipboard.writeText(link); toast(T('copied')); } catch (e) { toast(link, 5000); } };
+  $$('#lobbyBody [data-rg]').forEach(x => x.onclick = () => { const g = x.dataset.rg; ST.rGame = g; saveST(); RC.cfg = { g, opt: raceOpt(g) }; saveRC(); LINK.sendTo(1, { type: 'cfg', cfg: RC.cfg }); renderLobby(); });
+  $$('#lobbyBody [data-ro]').forEach(sg => sg.onclick = e => { const v = e.target.closest('[data-v]'); if (!v) return; const k = sg.dataset.ro; RC.cfg.opt[k] = +v.dataset.v; if (RC.cfg.g === 'klondike' && k === 'draw') ST.kDraw = +v.dataset.v; if (RC.cfg.g === 'spider') ST.sSuits = +v.dataset.v; if (RC.cfg.g === 'canfield') ST.cDraw = +v.dataset.v; saveST(); saveRC(); LINK.sendTo(1, { type: 'cfg', cfg: RC.cfg }); renderLobby(); });
+  if ($('#lStart')) $('#lStart').onclick = raceStart;
+  if ($('#lBack')) $('#lBack').onclick = () => show('game');
+  $('#lLeave').onclick = raceLeave;
+}
+function raceLeave() {
+  confirmBox(T('leaveQ'), T('leaveRoom'), () => {
+    try { LINK && LINK.close(); } catch (e) {}
+    if (inRace()) { G.race = null; saveGame(); }
+    RC = null; saveRC(); LS.del('race'); closeAllOv(); show('home'); renderHome();
+  });
+}
+
+/* ---------- the race ---------- */
+function raceStart() {
+  if (!isHostR() || !friendOnline()) return;
+  const c = RC.cfg, seed = pickSeed(c.g, c.opt), mid = Date.now().toString(36);
+  LINK.sendTo(1, { type: 'start', g: c.g, opt: c.opt, seed, mid, names: [RC.names[0], RC.names[1]] });
+  beginRace(c.g, c.opt, seed, mid);
+}
+function beginRace(g, opt, seed, mid) {
+  closeAllOv();
+  RC.mid = mid; RC.opp = { p: 0, m: 0, el: 0, done: false, gave: false }; RC.me = { p: 0, m: 0, el: 0, done: false, gave: false }; RC.res = null; saveRC();
+  newDeal(g, opt, seed, null, { mid });
+  toast('🏁 ' + T('raceGo'), 2000);
+}
+let PROG_T = null, lastProg = '';
+function raceProgress() {
+  if (!inRace() || !LINK) return;
+  const S = G.S; RC.me = { p: raceProg(S), m: S.moves, el: G.el, done: S.won, gave: !!(RC.me && RC.me.gave) };
+  saveRC(); renderRace();
+  const send = () => { const d = { type: 'prog', mid: RC.mid, p: Math.round(RC.me.p * 1000) / 1000, m: RC.me.m, el: RC.me.el, done: RC.me.done, gave: RC.me.gave }; const k = JSON.stringify(d); if (k !== lastProg) { lastProg = k; LINK.sendTo(LINK.seat === 0 ? 1 : 0, d); } };
+  clearTimeout(PROG_T); if (S.won || RC.me.gave) send(); else PROG_T = setTimeout(send, 250);
+  if (S.won || RC.me.gave) decide();
+}
+function raceGiveUp() { if (!inRace()) return; confirmBox(T('giveUpQ'), T('giveUp'), () => { RC.me.gave = true; saveRC(); raceProgress(); }); }
+/* who won: the first to finish; if both finished, the shorter playing time; giving up loses */
+function decide() {
+  if (!RC || RC.res || !RC.me || !RC.opp) return;
+  const me = RC.me, op = RC.opp;
+  let w = null;
+  if (me.gave && op.gave) w = me.p >= op.p ? 0 : 1;
+  else if (me.gave) w = 1; else if (op.gave) w = 0;
+  else if (me.done && op.done) w = me.el <= op.el ? 0 : 1;
+  else if (me.done) w = 0; else if (op.done) w = 1;
+  if (w == null) return;
+  RC.res = { w }; RC.score[w]++; saveRC();
+  const st = LS.get('stats', {}), b = st.race || (st.race = { played: 0, won: 0 }); b.played++; if (w === 0) b.won++; LS.set('stats', st);
+  if (w === 1) { beep('lose'); if (!G.S.won) banner('🏁 ' + T('xFinished', RC.names[1])); }
+  if (!(w === 0 && G.S.won)) setTimeout(raceResult, 900);   // my own win: the celebration opens the result
+}
+function raceResult() {
+  if (!RC || !RC.res || SCREEN !== 'game') return;
+  if ($('#ovs .res')) closeAllOv();
+  const w = RC.res.w, row = (nm, x) => '<tr><td>' + esc(nm) + '</td><td>' + iso(Math.round(x.p * 100) + '%') + '</td><td>' + fmtT(x.el) + '</td><td>' + num(x.m) + '</td><td>' + (x.done ? '✅' : x.gave ? '🏳️' : '') + '</td></tr>';
+  let h = '<div class="res">' + (w === 0 ? '<img class="winArt" src="img/win.webp" alt="">' : '') + '<h3 style="text-align:center">' + esc(w === 0 ? T('youWonRace') : T('xWonRace', RC.names[1])) + '</h3>';
+  h += '<table class="tbl"><tr><th></th><th>%</th><th>⏱</th><th>👆</th><th></th></tr>' + row(RC.names[0], RC.me) + row(RC.names[1], RC.opp) + '</table>';
+  h += '<div class="mscore"><div>' + num(RC.score[0]) + '<small>' + esc(RC.names[0]) + '</small></div><div>:</div><div>' + num(RC.score[1]) + '<small>' + esc(RC.names[1]) + '</small></div></div>';
+  h += '<div class="row" style="margin-top:12px">' + (isHostR() ? '<button class="btn main" data-k="again">🏁 ' + esc(T('raceAgain')) + '</button><button class="btn" data-k="lobby">🃏 ' + esc(T('changeGame')) + '</button>' : '<p class="muted" style="flex:1;text-align:center">' + esc(T('waitHostNext')) + '</p>') + '</div>';
+  h += '<div class="row" style="margin-top:8px">' + (!G.S.won ? '<button class="btn ghosty" data-k="keep">▶ ' + esc(T('keepPlaying')) + '</button>' : '<button class="btn ghosty" data-k="board">👁 ' + esc(T('seeBoard')) + '</button>') + '<button class="btn ghosty" data-k="leave">🚪 ' + esc(T('leaveRoom')) + '</button></div></div>';
+  const o = overlay(h, 'center');
+  o.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (!k) return; const v = k.dataset.k; closeOv(o); if (v === 'again') raceStart(); else if (v === 'lobby') { show('lobby'); renderLobby(); } else if (v === 'leave') raceLeave(); });
+}
+function raceMsg(m, from) {
+  if (!m || !RC) return;
+  if (m.type === 'cfg') { RC.cfg = m.cfg; saveRC(); if (SCREEN === 'lobby') renderLobby(); return; }
+  if (m.type === 'start') { if (m.names) RC.names[1] = m.names[0]; beginRace(m.g, m.opt, m.seed, m.mid); return; }
+  if (m.type === 'prog') {
+    if (m.mid !== RC.mid) return;
+    const was = RC.opp || {}; RC.opp = { p: m.p, m: m.m, el: m.el, done: m.done, gave: m.gave }; saveRC();
+    if (m.done && !was.done && !(G && G.S.won)) toast('🏁 ' + T('xFinished', RC.names[1]), 3000);
+    if (m.gave && !was.gave) toast('🏳️ ' + T('xGaveUp', RC.names[1]), 3000);
+    renderRace(); decide();
+  }
+}
+
+/* ---------- on the table: two progress bars + the voice bar ---------- */
+function renderRace() {
+  const bar = $('#raceBar'), vo = $('#voice'); if (!bar) return;
+  const on = inRace(); bar.classList.toggle('hide', !on); vo.classList.toggle('hide', !on);
+  if (!on) return;
+  const row = (cls, nm, x, online) => '<div class="rr ' + cls + '"><b>' + (cls === 'opp' ? '<i class="dot' + (online ? '' : ' off') + '"></i>' : '') + esc(nm) + '</b><span class="pb"><i style="width:' + Math.round((x ? x.p : 0) * 100) + '%"></i></span><span>' + (x && x.done ? '✅' : x && x.gave ? '🏳️' : iso(Math.round((x ? x.p : 0) * 100) + '%')) + '</span></div>';
+  const h = row('me', RC.names[0], RC.me) + row('opp', RC.names[1] || T('friend'), RC.opp, friendOnline());
+  if (bar.dataset.sig !== h) { bar.innerHTML = h; bar.dataset.sig = h; }
+  renderNet();
+}
+function renderNet() {
+  const n = $('#gNet'); if (!n) return;
+  if (!inRace() || !LINK) { n.classList.add('hide'); return; }
+  const st = LINK.status; n.classList.toggle('hide', st === 'open'); n.textContent = statusTxt();
+  const p = $('#vPtt'); if (p) p.textContent = '🎙 ' + T('holdTalk');
+  const o = $('#vOpen'); if (o) o.classList.toggle('on', LINK.openMic);
+}
+
+/* ---------- voice, emoji, voice messages (as in every AppNest online game) ---------- */
+function bubble(seat, text) {
+  const anchor = $('#raceBar .rr.' + (LINK && seat === LINK.seat ? 'me' : 'opp')); if (!anchor || SCREEN !== 'game') return;
+  const single = /^\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic})*$/u.test(text), r = anchor.getBoundingClientRect();
+  const b = document.createElement('div'); b.className = 'bub ' + (single ? 'emo' : ''); b.textContent = text; document.body.appendChild(b);
+  b.style.left = Math.max(8, Math.min(innerWidth - b.offsetWidth - 8, r.left + r.width / 2 - b.offsetWidth / 2)) + 'px'; b.style.top = (r.bottom + 4) + 'px';
+  setTimeout(() => b.remove(), single ? 3500 : 6000);
+}
+function sendEmo(e) { if (!LINK) return; LINK.emoji(e); bubble(LINK.seat, e); }
+function emoPanel() {
+  const E = ['👍', '😂', '😮', '😎', '🔥', '👏', '😬', '🙈'], PH = ['phHurry', 'phNice', 'phAlmost', 'phGG'];
+  const o = overlay('<div class="emogrid">' + E.map(e => '<button data-e="' + e + '">' + e + '</button>').join('') + '</div><div class="phr">' + PH.map(k => '<button data-e="' + esc(T(k)) + '">' + esc(T(k)) + '</button>').join('') + '</div><div class="row" style="margin-top:10px"><button class="btn" data-c>' + esc(T('close')) + '</button></div>');
+  o.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if (b) { sendEmo(b.dataset.e); closeOv(o); } else if (e.target.closest('[data-c]')) closeOv(o); });
+}
+function voiceMsg(url, sec, seat, mine) {
+  const a = new Audio(url); if (!mine) { const p = a.play(); if (p && p.catch) p.catch(() => toast(T('tapToHear'))); }
+  const anchor = $('#raceBar .rr.' + (mine ? 'me' : 'opp')); if (!anchor) return;
+  const r = anchor.getBoundingClientRect(), b = document.createElement('div'); b.className = 'bub'; b.style.pointerEvents = 'auto';
+  b.innerHTML = '<span class="vmsg"><button class="btn" style="min-height:36px;padding:4px 10px">▶</button> 🎤 ' + iso(sec.toFixed(1) + 's') + '</span>';
+  b.querySelector('button').onclick = () => { a.currentTime = 0; a.play(); };
+  document.body.appendChild(b); b.style.left = Math.max(8, r.left + 10) + 'px'; b.style.top = (r.bottom + 4) + 'px';
+  setTimeout(() => b.remove(), 15000);
+}
+function bindVoice() {
+  const p = $('#vPtt');
+  const on = e => { e.preventDefault(); if (!LINK) return; p.classList.add('on'); LINK.talk(true); }, off = () => { if (!p.classList.contains('on')) return; p.classList.remove('on'); LINK.talk(false); };
+  p.addEventListener('pointerdown', on); p.addEventListener('pointerup', off); p.addEventListener('pointerleave', off); p.addEventListener('pointercancel', off);
+  p.oncontextmenu = e => e.preventDefault();
+  $('#vOpen').onclick = async () => { if (!LINK) return; const want = !LINK.openMic; await LINK.setOpenMic(want); $('#vOpen').classList.toggle('on', LINK.openMic); toast(LINK.openMic ? T('openMicOn') : T('openMicOff')); };
+  $('#vRec').onclick = () => { if (!LINK) return; if (LINK.recording) LINK.recStop(); else LINK.recStart(20); };
+  $('#vEmo').onclick = emoPanel;
+}
+function banner(txt) { const host = $('#game'); if (!host) return; const b = document.createElement('div'); b.className = 'rbanner'; b.textContent = txt; host.appendChild(b); setTimeout(() => b.remove(), 2700); }
+/* after a reload: back into the room */
+function raceResume() {
+  if (!RC || !RC.sess) { if (RC) { RC = null; LS.del('race'); } return; }
+  initLink(); LINK.resume(RC.sess);
 }
 
 /* ---- screens.js ---- */
@@ -1598,6 +2491,7 @@ function renderHome() {
   const c = $('#mCont');
   if (G && G.S && !G.S.won && G.started) { c.classList.remove('hide'); $('#mContSub').textContent = gameTitle(G.S.g, G.S.opt) + ' · ' + T('movesN', NF(G.S.moves)); }
   else c.classList.add('hide');
+  $('#mRace b').textContent = T(RC ? 'inRoom' : 'raceBtn'); $('#mRaceSub').textContent = RC && RC.cfg ? cfgTxt(RC.cfg) + (LINK && LINK.session ? ' · ' + LINK.session.code : '') : T('raceBtnSub');
   const D = LS.get('daily', {}), done = D[today()], sk = dailyStreak();
   $('#dSub').textContent = done ? T('dailyDoneT', fmtT(done.t * 1000)) : T('dailySub');
   $('#dStreak').textContent = sk ? '🔥 ' + NF(sk) : '';
@@ -1735,7 +2629,7 @@ function tour(force) {
 
 /* ---------- init ---------- */
 function init() {
-  applyLook(); applyLang(); bindGame();
+  applyLook(); applyLang(); bindGame(); bindVoice();
   $$('[data-home]').forEach(b => b.onclick = () => {
     if (b.closest('#rules') && RULES_BACK !== 'home') { const t = RULES_BACK; RULES_BACK = 'home'; show(t); return; }
     if (b.closest('#settings') && SET_BACK !== 'home') { SET_BACK = 'home'; show('game'); return; }
@@ -1756,10 +2650,19 @@ function init() {
     if (G && G.started && !G.S.won && G.daily !== today()) confirmBox(T('newDealQ'), T('daily'), go); else go();
   };
   $('#mCont').onclick = () => { if (G) show('game'); };
+  $('#mRace').onclick = () => openLobby();
   if (G && (!G.S || !SOL.GAMES[G.S.g])) { G = null; saveGame(); }
+  raceResume();
   renderHome();
   $$('#games [data-g]').forEach(b => b.onclick = () => setupBox(b.dataset.g));
-  tour(false);
+  const jc = new URLSearchParams(location.search).get('join');
+  if (jc) {
+    const q2 = new URLSearchParams(location.search); q2.delete('join'); history.replaceState(null, '', location.pathname + (q2.toString() ? '?' + q2 : ''));
+    ST.tutDone = true; saveST();
+    if (RC) { show('lobby'); renderLobby(); }
+    else if (!ST.name) { openLobby(); $('#lCode').value = jc.toUpperCase(); toast(T('enterName'), 4000); }
+    else openLobby(jc);
+  } else tour(false);
   if (location.protocol === 'file:') toast(T('fileWarn'), 6000);
   const q = new URLSearchParams(location.search);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !q.get('nosw')) navigator.serviceWorker.register('sw.js').catch(() => {});
