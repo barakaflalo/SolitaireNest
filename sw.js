@@ -20,10 +20,10 @@
 })();
 
 /* SolitaireNest service worker — bump VERSION on every upload */
-const VERSION = 'solitairenest-v4';
+const VERSION = 'solitairenest-v5';
 const SHELL = ['./', 'manifest.json', 'icon-192.png', 'icon-512.png', 'privacy_policy.html',
   'img/back-blue.webp', 'img/back-red.webp', 'img/felt.webp', 'img/face-j.webp', 'img/face-q.webp', 'img/face-k.webp', 'img/win.webp',
-  'img/logo.webp', 'img/hero.webp', 'img/daily.webp', ...['klondike', 'freecell', 'spider', 'pyramid', 'tripeaks', 'golf', 'canfield', 'yukon'].map(g => 'img/g-' + g + '.webp')];
+  'img/logo.webp', 'img/hero.webp', 'img/daily.webp', ...['klondike', 'freecell', 'spider', 'pyramid', 'tripeaks', 'golf', 'canfield', 'yukon', 'russian', 'scorpion', 'fortythieves', 'bakers', 'clock'].map(g => 'img/g-' + g + '.webp')];
 const ROOT = new URL('./', self.registration.scope).href;
 
 self.addEventListener('install', e => {
